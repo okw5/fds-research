@@ -51,4 +51,9 @@
    npx hardhat node
 
 7. 배포 (예시)
-   npx hardhat run --network <network-name> scripts/deploy.ts
+   npx hardhat node --fork https://eth-mainnet.g.alchemy.com/v2/본인키
+   ./watchtower/streamlit run app.py
+
+   
+
+

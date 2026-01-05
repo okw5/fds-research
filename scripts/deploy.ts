@@ -1,35 +1,28 @@
 import { ethers } from "hardhat";
 
 async function main() {
-  console.log("🚀 FDS Stablecoin 배포 시작...\n");
+  console.log("🚀 FDS Stablecoin 배포 및 설정 시작...\n");
 
-  // 1. 배포자(Owner) 계정 가져오기
-  // Hardhat이 제공하는 첫 번째 테스트 계정을 사용합니다.
-  const [deployer] = await ethers.getSigners();
-  console.log(`👨‍💻 배포자 주소(Owner): ${deployer.address}`);
+  const [deployer, watchtower] = await ethers.getSigners();
+  console.log(`👨‍💻 배포자(Owner): ${deployer.address}`);
+  console.log(`👀 감시자(Watchtower): ${watchtower.address}`);
 
-  // 배포 전 잔액 확인 (선택 사항)
-  const balance = await ethers.provider.getBalance(deployer.address);
-  console.log(`💰 배포자 잔액: ${ethers.formatEther(balance)} ETH\n`);
-
-  // 2. 스마트 컨트랙트 공장(Factory) 가져오기
-  // "FDSStablecoin"은 우리가 작성한 솔리디티 파일의 contract 이름과 같아야 합니다.
+  // 1. 배포
   const FDSStablecoin = await ethers.getContractFactory("FDSStablecoin");
-
-  // 3. 배포 트랜잭션 전송
-  // 생성자(constructor)에 인자가 있다면 deploy() 안에 넣어줍니다. (우린 없음)
   const fdsToken = await FDSStablecoin.deploy();
-
-  // 4. 배포 완료 대기
   await fdsToken.waitForDeployment();
-
-  // 5. 결과 출력
   const tokenAddress = await fdsToken.getAddress();
-  console.log(`✅ FDS Stablecoin 배포 완료!`);
-  console.log(`📍 토큰 주소: ${tokenAddress}`);
+
+  console.log(`✅ 배포 완료! 주소: ${tokenAddress}`);
+
+  // 2. [핵심] Watchtower 등록
+  console.log("⚙️ Watchtower 등록 중...");
+  const tx = await fdsToken.setWatchtower(watchtower.address);
+  await tx.wait();
+  
+  console.log("✅ Watchtower 등록 완료!");
 }
 
-// 에러 처리 패턴
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
