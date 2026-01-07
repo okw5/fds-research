@@ -51,8 +51,9 @@
    npx hardhat node
 
 7. 배포 (예시)
-   npx hardhat node --fork https://eth-mainnet.g.alchemy.com/v2/본인키
-   ./watchtower/streamlit run app.py
+   테스트 블록체인 시작 npx hardhat node --fork https://eth-mainnet.g.alchemy.com/v2/본인키
+   컨트렉트 배포 npx hardhat run scripts/deploy_all.ts --network localhost
+   웹 UI서비스 시작 ./watchtower/streamlit run app.py
 
    
 
