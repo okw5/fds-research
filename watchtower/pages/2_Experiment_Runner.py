@@ -55,6 +55,22 @@ with st.sidebar:
     gas_volatility = st.slider("가스비 변동성 (%)", 0, 100, 20)
     delay_range = st.slider("지연 시간 (Latency ms)", 0, 2000, (100, 500))
 
+    # E. Actions
+    st.info("**5. 대응 조치 (Action)**")
+    defense_action = st.selectbox(
+        "탐지 시 실행할 방어 로직", 
+        ["🚫 FDS 코인 전체 일시정지 (System Pause)", 
+         "🧊 해커 지갑 동결 (Wallet Freeze)", 
+         "🏦 준비금 컨트랙트 보호 (Vault Safe Mode)"]
+    )
+    
+    with st.expander("💡 더 나은 방어 전략 제안 (Ideas)"):
+        st.markdown("""
+        **1. 동적 수수료 (Dynamic Fee)**: 의심스러운 거래에 대해 수수료를 100%로 인상하여 공격 비용을 극대화합니다.
+        **2. 허니팟 (Honeypot)**: 공격 자금을 차단하지 않고, 별도의 화이트햇 금고로 리다이렉트시킵니다.
+        **3. 플래시론 역추적**: 플래시론을 이용한 공격 감지 시, 대출 상환을 강제로 실패하게 하여 공격을 원천 무효화합니다.
+        """)
+
 
 # --------------------------------------------------------------------------
 # 2. Automation Logic
@@ -74,6 +90,17 @@ def run_simulation(idx):
         sim_delay = random.uniform(delay_range[0], delay_range[1]) / 1000.0
         
         logs.append(f"⏱️ [Iter {idx}] 환경: Gas {sim_gas_price/1e9:.2f} Gwei | Latency {sim_delay*1000:.0f}ms")
+
+        # Scenario Details Logging
+        if exp_type == "Infinite Mint":
+            logs.append(f"🎯 타겟 코인: FDS ({contracts['ADDRS']['FDS']})")
+            logs.append(f"👾 해커 주소: {accs['hacker'].address}") # Infinite Mint also implies hacker action
+        elif exp_type == "Vault Drain":
+            logs.append(f"🏦 준비금 컨트랙트: Vault ({contracts['ADDRS']['Vault']})")
+            logs.append(f"👾 해커 주소: {accs['hacker'].address}")
+        elif exp_type == "Flash Loan Depeg":
+            logs.append(f"📉 DEX 컨트랙트: {contracts['ADDRS']['DEX']}")
+            logs.append(f"👾 해커 주소: {accs['hacker'].address}")
         
         # Generate Attack Amount
         attack_amount_float = random.uniform(attack_range[0], attack_range[1])
@@ -156,12 +183,56 @@ def run_simulation(idx):
         defense_gas = 0
         
         if triggered:
-            logs.append("🚨 탐지 성공! 방어 트랜잭션 전송 중...")
-            placeholder.code("\n".join(logs))
+
+            logs.append(f"🚨 탐지 성공! 대응 조치 실행: **{defense_action.split('(')[0].strip()}**")
             
-            receipt, defense_latency = send_defense_tx(contracts, f"Auto-Defense Iter {idx}")
-            defense_block = receipt['blockNumber']
-            defense_gas = receipt['gasUsed']
+            # Logic Branch based on Action
+            # Note: In this prototype, FDSStablecoin only supports 'System Pause'. 
+            # Other actions will simulate the effect or fall back to System Pause with a log note.
+            
+            if "Wallet Freeze" in defense_action:
+                logs.append("   👉 해커 지갑(Blacklist) 동결 트랜잭션 실행 중...")
+                
+                # Execute Blacklist Transaction (as Owner)
+                try:
+                    owner_acc = w3.eth.accounts[0]
+                    # We use Owner only for this specific action in simulation 
+                    # (In production, Watchtower might need a specific delegated function like pauseByWatchtower)
+                    defense_func = contracts["FDS"].functions.blacklistAccount(accs['hacker'].address)
+                    tx = defense_func.build_transaction({
+                        'from': owner_acc,
+                        'nonce': w3.eth.get_transaction_count(owner_acc),
+                        'gasPrice': int(w3.eth.gas_price * 1.5)
+                    })
+                    # In Hardhat node, we can send from unlocked accounts directly or sign if we have PK.
+                    # Assuming Hardhat Node #0 is unlocked:
+                    tx_hash = w3.eth.send_transaction(tx)
+                    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+                    defense_latency = 0.5 # Simulating processing time
+                    defense_block = receipt['blockNumber']
+                    defense_gas = receipt['gasUsed']
+                    
+                    logs.append("   ✅ 해커 지갑 동결 완료 (Blacklisted)")
+                    
+                except Exception as e:
+                    logs.append(f"   ❌ 동결 실패: {e}")
+                    # Fallback to Pause if blacklist fails?
+                    receipt, defense_latency = send_defense_tx(contracts, f"Auto-Defense (Fallback): {defense_action}")
+                    defense_block = receipt['blockNumber']
+                    defense_gas = receipt['gasUsed']
+
+            elif "Vault Safe Mode" in defense_action:
+                logs.append("   👉 (Simulated) Vault 인출 제한 모드 전환 중...")
+                logs.append("   ⚠️ 현재 Vault는 Pausable 미지원 -> FDS System Pause로 대체 실행")
+                # Still fallback to Pause for Vault
+                receipt, defense_latency = send_defense_tx(contracts, f"Auto-Defense: {defense_action}")
+                defense_block = receipt['blockNumber']
+                defense_gas = receipt['gasUsed']
+            else:
+                # System Pause (Default)
+                receipt, defense_latency = send_defense_tx(contracts, f"Auto-Defense: {defense_action}")
+                defense_block = receipt['blockNumber']
+                defense_gas = receipt['gasUsed']
         else:
              logs.append("⚠️ 탐지 실패 (임계값 미달) - 방어 건너뜀")
         

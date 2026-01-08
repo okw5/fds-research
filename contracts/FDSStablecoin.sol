@@ -26,7 +26,14 @@ contract FDSStablecoin is ERC20, Pausable, Ownable {
     event WatchtowerChanged(address indexed oldWatchtower, address indexed newWatchtower);
     event EmergencyPausedByWatchtower(address indexed triggerer, uint256 timestamp);
     event RateLimitAttributesChanged(uint256 newLimit);
+    event EmergencyPausedByWatchtower(address indexed triggerer, uint256 timestamp);
+    event RateLimitAttributesChanged(uint256 newLimit);
     event CircuitBreakerTriggered(string reason, uint256 timestamp);
+    event Blacklisted(address indexed account);
+    event UnBlacklisted(address indexed account);
+
+    // --- Blacklist Mapping ---
+    mapping(address => bool) private _blacklist;
 
     constructor() ERC20("FDS Stablecoin", "FDS") Ownable(msg.sender) {
         // 초기 설정: 총 발행량의 50%를 시간당 한도로 설정 (예지)
@@ -102,10 +109,33 @@ contract FDSStablecoin is ERC20, Pausable, Ownable {
     // (기존) 서비스 재개
     function resumeService() external onlyOwner {
         _unpause();
+    // (기존) 서비스 재개
+    function resumeService() external onlyOwner {
+        _unpause();
     }
 
-    // Internal Update 함수 오버라이드 (Pausable + Rate Limit 적용)
+    // --- Blacklist Management ---
+    function blacklistAccount(address account) external onlyOwner {
+        _blacklist[account] = true;
+        emit Blacklisted(account);
+    }
+
+    function unBlacklistAccount(address account) external onlyOwner {
+        _blacklist[account] = false;
+        emit UnBlacklisted(account);
+    }
+
+    function isBlacklisted(address account) public view returns (bool) {
+        return _blacklist[account];
+    }
+
+    // Internal Update 함수 오버라이드 (Pausable + Rate Limit 적용 + Blacklist)
     function _update(address from, address to, uint256 value) internal override whenNotPaused {
+        // Blacklist Check
+        if (_blacklist[from] || _blacklist[to]) {
+            revert("Address is blacklisted");
+        }
+
         // Minting (from == 0) 발생 시 Rate Limit 체크
         if (from == address(0)) {
             _checkMintLimit(value);
