@@ -63,6 +63,10 @@ col1.metric("FDS Total Supply", f"{supply:,.0f}")
 vault_bal = float(w3.from_wei(contracts["USDT"].functions.balanceOf(contracts["ADDRS"]["Vault"]).call(), 'ether'))
 col2.metric("Vault Reserves (USDT)", f"${vault_bal:,.0f}")
 
+# 2-B. DEX Pool Status (New User Request)
+pool_fds = float(w3.from_wei(dex.functions.reserveFDS().call(), 'ether'))
+pool_usdt = float(w3.from_wei(dex.functions.reserveUSDT().call(), 'ether'))
+
 # 3. Price Spread
 oracle_p = float(w3.from_wei(oracle.functions.getLatestPrice().call(), 'ether'))
 pool_fds = float(w3.from_wei(dex.functions.reserveFDS().call(), 'ether'))
@@ -80,6 +84,25 @@ try:
     col4.metric("Rate Limit Usage", f"{usage_pct:.1f}%", f"{period_mint:,.0f} / {limit:,.0f}")
 except:
     col4.metric("Rate Limit", "N/A")
+
+# [New] DEX Pool Composition Visualization
+with st.container():
+    st.markdown("##### ⚖️ DEX Pool Composition")
+    d1, d2 = st.columns(2)
+    d1.info(f"**FDS Pool**: {pool_fds:,.0f} FDS")
+    d2.success(f"**USDT Pool**: ${pool_usdt:,.0f} USDT")
+    
+    # Progress bar for ratio (Visualizing Depeg pressure)
+    total_liquidity = pool_fds + pool_usdt
+    if total_liquidity > 0:
+        fds_ratio = pool_fds / total_liquidity
+        st.progress(fds_ratio, text=f"Pool Ratio: FDS {fds_ratio*100:.1f}% vs USDT {(1-fds_ratio)*100:.1f}%")
+        
+        # Display Spot Price
+        spot_price_usdt = dex_p
+        spot_price_fds = 1 / dex_p if dex_p > 0 else 0
+        st.markdown(f"💱 **Current Spot Price**: `1 FDS` ≈ **${spot_price_usdt:,.4f}** USDT | `1 USDT` ≈ **{spot_price_fds:,.4f}** FDS")
+
 
 st.divider()
 

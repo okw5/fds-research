@@ -26,8 +26,7 @@ contract FDSStablecoin is ERC20, Pausable, Ownable {
     event WatchtowerChanged(address indexed oldWatchtower, address indexed newWatchtower);
     event EmergencyPausedByWatchtower(address indexed triggerer, uint256 timestamp);
     event RateLimitAttributesChanged(uint256 newLimit);
-    event EmergencyPausedByWatchtower(address indexed triggerer, uint256 timestamp);
-    event RateLimitAttributesChanged(uint256 newLimit);
+
     event CircuitBreakerTriggered(string reason, uint256 timestamp);
     event Blacklisted(address indexed account);
     event UnBlacklisted(address indexed account);
@@ -107,11 +106,10 @@ contract FDSStablecoin is ERC20, Pausable, Ownable {
     }
 
     // (기존) 서비스 재개
+
     function resumeService() external onlyOwner {
         _unpause();
-    // (기존) 서비스 재개
-    function resumeService() external onlyOwner {
-        _unpause();
+        currentPeriodMintAmount = 0;
     }
 
     // --- Blacklist Management ---

@@ -155,26 +155,40 @@ def run_simulation(idx):
              attack_tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
              
         elif exp_type == "Flash Loan Depeg":
-             # Fix: Hacker needs FDS to dump. Simulate "Flash Loan" by minting first.
-             # 1. Flash Loan (Mint)
-             funding_tx = contracts["FDS"].functions.exploitMint(attack_amount_wei).build_transaction({
-                 'from': accs['hacker'].address,
-                 'nonce': w3.eth.get_transaction_count(accs['hacker'].address),
+             # Fix: Flash Loan should NOT mint new tokens (keeps supply constant).
+             # Instead, we "Borrow" from a liquidity provider (Deployer/Account0) and "Repay".
+             deployer_acc = w3.eth.accounts[0]
+             
+             # 1. Borrow (Transfer from Deployer -> Hacker)
+             # Note: logic assumes Deployer has enough funds (starts with 500k+).
+             funding_tx = contracts["FDS"].functions.transfer(accs['hacker'].address, attack_amount_wei).build_transaction({
+                 'from': deployer_acc,
+                 'nonce': w3.eth.get_transaction_count(deployer_acc),
                  'gasPrice': sim_gas_price
              })
-             # We execute this synchronously as "part of the atomic flash loan setup" (simplification for sim)
-             funding_signed = w3.eth.account.sign_transaction(funding_tx, accs['hacker'].key)
-             w3.eth.send_raw_transaction(funding_signed.raw_transaction)
-             time.sleep(0.1) # Wait for funding to reflect in local mempool/node
+             w3.eth.send_transaction(funding_tx) # Account 0 is unlocked
+             time.sleep(0.1) # Wait for propagation
              
+             # Prepare Nonce
+             hacker_nonce = w3.eth.get_transaction_count(accs['hacker'].address)
+
              # 2. Dump (Attack)
              tx = contracts["DEX"].functions.simulateDump(attack_amount_wei).build_transaction({
                 'from': accs['hacker'].address, 
-                'nonce': w3.eth.get_transaction_count(accs['hacker'].address), # Nonce increased
+                'nonce': hacker_nonce,
                 'gasPrice': sim_gas_price
              })
              signed_tx = w3.eth.account.sign_transaction(tx, accs['hacker'].key)
              attack_tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+             
+             # 3. Repay (Return funds to Deployer to simulate Flash Loan atomicity)
+             repay_tx = contracts["FDS"].functions.transfer(deployer_acc, attack_amount_wei).build_transaction({
+                 'from': accs['hacker'].address,
+                 'nonce': hacker_nonce + 1,
+                 'gasPrice': sim_gas_price
+             })
+             signed_repay = w3.eth.account.sign_transaction(repay_tx, accs['hacker'].key)
+             w3.eth.send_raw_transaction(signed_repay.raw_transaction)
 
         # Step 2: Defense Logic
         receipt = None
