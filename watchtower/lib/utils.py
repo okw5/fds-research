@@ -66,10 +66,47 @@ def load_contracts():
             "ADDRS": addrs,
             "ABIS": abis
         }
+        
+        # Load New 2-Layer Contracts if available
+        try:
+            if "FDSMicro" in addrs and os.path.exists(os.path.join(base_path, "FDSMicroToken.json")):
+                with open(os.path.join(base_path, "FDSMicroToken.json")) as f:
+                    abis["FDSMicro"] = json.load(f)["abi"]
+                contracts["FDSMicro"] = w3.eth.contract(address=addrs["FDSMicro"], abi=abis["FDSMicro"])
+            
+            if "FDSMacro" in addrs and os.path.exists(os.path.join(base_path, "FDSMacroToken.json")):
+                with open(os.path.join(base_path, "FDSMacroToken.json")) as f:
+                     abis["FDSMacro"] = json.load(f)["abi"]
+                contracts["FDSMacro"] = w3.eth.contract(address=addrs["FDSMacro"], abi=abis["FDSMacro"])
+        except Exception as e:
+            print(f"Warning: Could not load 2-Layer contracts: {e}")
+
         return contracts
     except Exception as e:
         st.error(f"Failed to load contracts: {e}")
         return None
+
+# --------------------------------------------------------------------------
+# 매크로 토큰 이체 서명 함수
+# --------------------------------------------------------------------------
+def sign_macro_transfer(contracts, from_addr, to_addr, amount):
+    w3 = get_web3()
+    macro = contracts["FDSMacro"]
+    
+    chain_id = w3.eth.chain_id
+    nonce = macro.functions.nonces(from_addr).call()
+    
+    # "MACRO_TRANSFER", chainId, contractAddr, from, to, amount, nonce
+    message_hash = w3.solidity_keccak(
+        ['string', 'uint256', 'address', 'address', 'address', 'uint256', 'uint256'],
+        ["MACRO_TRANSFER", chain_id, contracts["ADDRS"]["FDSMacro"], from_addr, to_addr, int(amount), nonce]
+    )
+    
+    message = encode_defunct(hexstr=message_hash.hex())
+    # Watchtower가 서명 (Private Key 필요)
+    signed_message = w3.eth.account.sign_message(message, private_key=WATCHTOWER_PK)
+    
+    return signed_message.signature
 
 # --------------------------------------------------------------------------
 # 계정 객체
