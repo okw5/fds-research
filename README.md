@@ -1,60 +1,33 @@
-# fds-research
+# FDS 연구 프로젝트
 
-간단한 설명
-- 이 저장소는 Hardhat + TypeScript 기반의 스마트컨트랙트(연구/실험) 프로젝트입니다.
-- contracts, scripts, test, ignition 등의 디렉터리를 포함하고 있어 로컬 개발, 컴파일, 테스트, 배포 흐름을 제공하도록 구성되어 있습니다.
+### 프로젝트 소개
+안녕하세요. 이 프로젝트는 대학원 연구를 위해 만든 FDS(이상거래탐지시스템) 실험용 코드입니다.
+이더리움 환경에서 스테이블코인 해킹 시나리오를 돌려보고, 이걸 어떻게 막을 수 있을지 실험해볼 수 있도록 만들었습니다.
 
-목표 (설명할 내용 예시)
-- 연구 목적의 스마트컨트랙트 개발 / 실험
-- 예: 가스 최적화, 프로토콜 설계 실험, 인터페이스 테스트 등
-(프로젝트의 구체 목적을 원하시면 contracts 디렉터리 아래 각 컨트랙트 설명을 알려주세요. README의 이 부분을 구체화해 드리겠습니다.)
+### 주요 기능
+- 2가지 토큰 모델 비교 실험 (기존 방식 vs 2계층 모델)
+- 공격 시나리오 시뮬레이션 (무한 발행, 탈취 등)
+- 실시간 모니터링 및 방어 시스템 (Watchtower)
 
-저장소 구조
-- contracts/        : Solidity 컨트랙트 소스 (현재 디렉터리 존재)
-- ignition/         : 배포/시나리오 정의(하드햇 Ignition 매니페스트 등)
-- scripts/          : 배포 또는 헬퍼 스크립트
-- test/             : 테스트(하드햇/무타치 등)
-- hardhat.config.ts : Hardhat 구성(타입스크립트)
-- package.json      : 의존성 및 NPM 스크립트
-- tsconfig.json     : TypeScript 설정
-- .env.example      : 필요한 환경변수 예시
+### 폴더 설명
+- contracts: 솔리디티로 작성된 스마트 컨트랙트 코드들이 있어요.
+- scripts: 배포나 테스트용 스크립트가 모여 있습니다.
+- watchtower: 실험 결과를 볼 수 있는 웹 페이지 코드입니다.
 
-요구사항
-- Node.js (v16 이상 권장)
-- npm 또는 yarn
-- (선택) Alchemy/Infura API 키, Etherscan API 키, 배포용 지갑 프라이빗 키 등
+### 실행 방법
 
-설정 및 시작 (예시)
-1. 저장소 클론
-   git clone https://github.com/okw5/fds-research.git
-   cd fds-research
+1. 설치하기
+먼저 필요한 라이브러리들을 설치해주세요.
+npm install
 
-2. 의존성 설치
-   npm install
-   또는
-   yarn install
+2. 로컬 블록체인 켜기
+새 터미널을 열어서 아래 명령어를 입력하면 로컬 블록체인이 실행됩니다.
+npx hardhat node
 
-3. 환경변수 설정
-   .env.example 파일을 복사하여 .env로 만들고 필요한 값을 채우세요.
-   예시 키 (프로젝트에 맞게 .env.example을 확인하고 동일하게 채우세요):
-   - RPC_URL (예: Alchemy/Infura 엔드포인트)
-   - PRIVATE_KEY (배포용 지갑)
-   - ETHERSCAN_API_KEY (컨트랙트 검증 시)
+3. 컨트랙트 배포하기
+또 다른 터미널에서 실행해주세요. 이 명령어로 모든 컨트랙트가 로컬에 배포됩니다.
+npx hardhat run scripts/deploy_all.ts --network localhost
 
-4. 컴파일
-   npx hardhat compile
-
-5. 테스트
-   npx hardhat test
-
-6. 로컬 노드 실행 (옵션)
-   npx hardhat node
-
-7. 배포 (예시)
-   테스트 블록체인 시작 npx hardhat node --fork https://eth-mainnet.g.alchemy.com/v2/본인키
-   컨트렉트 배포 npx hardhat run scripts/deploy_all.ts --network localhost
-   웹 UI서비스 시작 ./watchtower/streamlit run app.py
-
-   
-
-
+4. 실험 페이지 실행하기
+마지막으로 모니터링 웹 UI를 켜서 실험을 진행하면 됩니다.
+streamlit run watchtower/app.py
