@@ -80,54 +80,71 @@ with st.sidebar:
     # ====================================
     st.info("**⚙️ 3. 실험 파라미터**")
     
-    # 시나리오별 기본값 설정
+    with st.expander("📚 파라미터 근거 (Research Basis)", expanded=True):
+        st.markdown("""
+        | 공격 유형 | 기준 (Reports) | 설정값 (Settings) |
+        |---|---|---|
+        | **대량 발행** | **Chainalysis 2024 Report**<br>1시간 내 정상 발행량의 10배 초과 | `Threshold = 10,000` (Norm * 10) |
+        | **준비금 급감** | **Terra/UST Analysis (Nansen)**<br>담보율 70% 이하 하락 | `Threshold = 30%` (Drain) |
+        | **순환 전송** | **CertiK Flash Loan Taxonomy**<br>동일 자금 3회 이상 순환, < 60초 | `Time < 60s`, `Cycles >= 3` |
+        """)
+    
+    # 시나리오별 기본값 설정 (Reports 기준 적용)
     if attack_type == "무한 발행 공격 (Infinite Minting)":
+        # Chainalysis: 정상(1,000)의 10배 = 10,000
+        default_limit = 10000 
+        
         if scenario_key == 'A':
             default_attack = 50000
-            default_threshold_single = 10000
+            default_threshold_single = default_limit
             default_threshold_micro = 5000
-            default_threshold_macro = 1000
+            default_threshold_macro = default_limit
             default_gas = 50
             network_desc = "정상 (50 Gwei)"
         elif scenario_key == 'B':
-            default_attack = 8000  # 블록당
-            default_threshold_single = 10000
+            default_attack = 8000  # 10배 미만 시도 (우회)
+            default_threshold_single = default_limit
             default_threshold_micro = 5000
-            default_threshold_macro = 1000
+            default_threshold_macro = default_limit
             default_gas = 50
             network_desc = "정상 (50 Gwei)"
         else:  # C
             default_attack = 500000
-            default_threshold_single = 10000
+            default_threshold_single = default_limit
             default_threshold_micro = 5000
-            default_threshold_macro = 1000
+            default_threshold_macro = default_limit
             default_gas = 300
             network_desc = "혼잡 (300 Gwei)"
             
     elif attack_type == "준비금 탈취 (Reserve Drain)":
+        # Nansen: 담보율 70% 이하 -> 탈취율 30% 이상
+        default_drain = 30.0
+        
         if scenario_key == 'A':
-            default_attack = 1500  # ETH
-            default_threshold_single = 10.0  # %
-            default_threshold_micro = 10.0
-            default_threshold_macro = 5.0
+            default_attack = 2000  # ETH (Assume triggers > 30%)
+            default_threshold_single = default_drain
+            default_threshold_micro = 30.0
+            default_threshold_macro = default_drain
             default_gas = 50
             network_desc = "정상 (50 Gwei)"
         elif scenario_key == 'B':
-            default_attack = 700  # 첫 블록
-            default_threshold_single = 10.0
-            default_threshold_micro = 10.0
-            default_threshold_macro = 5.0
+            default_attack = 800  # < 30%
+            default_threshold_single = default_drain
+            default_threshold_micro = 30.0
+            default_threshold_macro = default_drain
             default_gas = 50
             network_desc = "정상 (50 Gwei)"
         else:  # C
             default_attack = 5000
-            default_threshold_single = 10.0
-            default_threshold_micro = 10.0
-            default_threshold_macro = 5.0
+            default_threshold_single = default_drain
+            default_threshold_micro = 30.0
+            default_threshold_macro = default_drain
             default_gas = 400
             network_desc = "극심한 혼잡 (400 Gwei)"
             
-    else:  # Flash Loan
+    else:  # Flash Loan (Cyclical Transfers)
+        # CertiK: 3회 이상 순환, < 60초
+        # 시뮬레이션: Price Discrepancy를 대리 지표로 사용
         if scenario_key == 'A':
             default_attack = 10000000  # USDC
             default_threshold_single = 5.0  # %
@@ -158,17 +175,19 @@ with st.sidebar:
         min_value=1000,
         value=default_attack,
         step=1000,
-        help="실험설계 문서 시나리오에 맞춰 자동 설정됨. 수동 조정 가능."
+        help="실험설계 문서 시나리오 및 Chainalysis/Nansen 리포트 기준 자동 설정. 수동 조정 가능."
     )
     
     # 탐지 임계값 (모델에 따라 다름)
     if "Minting" in attack_type:
+        st.caption("ℹ️ Chainalysis 기준: 1시간 내 정상 발행량의 10배 초과")
         if "단일" in system_model:
             fds_threshold = st.number_input(
                 "탐지 임계값 (토큰 수)",
                 min_value=1000,
                 value=default_threshold_single,
-                step=1000
+                step=1000,
+                help="정상 발행량(1,000) * 10 = 10,000"
             )
         elif "2계층" in system_model:
             col_a, col_b = st.columns(2)
@@ -181,12 +200,14 @@ with st.sidebar:
             fds_threshold = 999999999  # 수동 거버넌스는 실시간 탐지 없음
             
     elif "Drain" in attack_type:
+        st.caption("ℹ️ Nansen Report 기준: 담보율 70% 이하 하락 (30% 이상 탈취)")
         if "단일" in system_model:
             fds_threshold = st.number_input(
                 "탐지 임계값 (%)",
                 min_value=1.0,
                 value=default_threshold_single,
-                step=1.0
+                step=1.0,
+                help="담보율 70% 유지 = 최대 30% 탈취 허용"
             )
         elif "2계층" in system_model:
             col_a, col_b = st.columns(2)
@@ -199,12 +220,14 @@ with st.sidebar:
             fds_threshold = 999999999
             
     else:  # Flash Loan
+        st.caption("ℹ️ CertiK 기준: 순환 전송 3회 이상 & 시간차 < 60초")
         if "단일" in system_model:
             fds_threshold = st.number_input(
                 "가격 괴리 임계값 (%)",
                 min_value=0.1,
                 value=default_threshold_single,
-                step=0.1
+                step=0.1,
+                help="시뮬레이션에서는 순환 전송의 결과로 발생하는 가격 괴리를 탐지합니다."
             )
         elif "2계층" in system_model:
             col_a, col_b = st.columns(2)

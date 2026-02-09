@@ -22,7 +22,7 @@ npm install
 
 2. 로컬 블록체인 켜기
 새 터미널을 열어서 아래 명령어를 입력하면 로컬 블록체인이 실행됩니다.
-npx hardhat node
+npx hardhat node --fork  https://eth-mainnet.g.alchemy.com/v2/[개인키]
 
 3. 컨트랙트 배포하기
 또 다른 터미널에서 실행해주세요. 이 명령어로 모든 컨트랙트가 로컬에 배포됩니다.
@@ -31,3 +31,4 @@ npx hardhat run scripts/deploy_all.ts --network localhost
 4. 실험 페이지 실행하기
 마지막으로 모니터링 웹 UI를 켜서 실험을 진행하면 됩니다.
 streamlit run watchtower/app.py
+
