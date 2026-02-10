@@ -53,7 +53,7 @@ class BenchmarkDataGenerator:
     # =========================================================================
     
     def generate_infinite_mint_attack(self, 
-                                      amount_range: tuple = (50000, 500000),
+                                      amount_range: tuple = (100, 500000),
                                       network: str = "normal") -> Scenario:
         """무한 민트 공격 시나리오 생성"""
         amount = random.randint(*amount_range)
@@ -72,7 +72,7 @@ class BenchmarkDataGenerator:
         )
     
     def generate_reserve_drain_attack(self,
-                                      amount_range: tuple = (1000, 5000),
+                                      amount_range: tuple = (10, 5000),
                                       network: str = "normal") -> Scenario:
         """금고 탈취 공격 시나리오 생성"""
         amount = random.randint(*amount_range)
@@ -91,7 +91,7 @@ class BenchmarkDataGenerator:
         )
     
     def generate_flash_loan_attack(self,
-                                   loan_range: tuple = (10_000_000, 100_000_000),
+                                   loan_range: tuple = (100_000, 100_000_000),
                                    network: str = "normal") -> Scenario:
         """플래시론 디페깅 공격 시나리오 생성"""
         loan_amount = random.randint(*loan_range)

@@ -106,8 +106,8 @@ class FDSTwoLayerSystem(DetectionSystem):
         if detected_as_attack:
             if is_macro:
                 # Macro 공격: Macro 계층만 선택적 정지
-                # 자동 분석 + 지갑 동결로 빠른 대응 → 1~5분
-                service_downtime_sec = random.uniform(60, 300)  # 1~5분 (Macro만)
+                # 자동 분석 + 지갑 동결로 빠른 대응 → 5~30분 (단일 계층과 동일하게 변경)
+                service_downtime_sec = random.uniform(300, 1800)  # 5~30분 (Macro만)
                 
                 micro_available = True  # ★ 소액결제는 계속 운영!
                 freeze_scope = 'selective'  # 선택적 동결 (Macro만)
