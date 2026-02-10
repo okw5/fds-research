@@ -1,10 +1,13 @@
 """
 DetectionSystem 추상 베이스 클래스
 모든 탐지 시스템이 구현해야 하는 인터페이스 정의
+
+v2: 피해금액, 서비스 중단 시간, 서비스 가용성 지표 추가
 """
 
 from abc import ABC, abstractmethod
 from typing import Tuple, Dict, Any, Optional
+from dataclasses import dataclass
 
 # 조건부 임포트: 패키지 모드와 직접 실행 모드 지원
 try:
@@ -14,6 +17,29 @@ except ImportError:
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from scenario import Scenario, ScenarioType, ScenarioLabel
+
+
+@dataclass
+class DetectionResponse:
+    """
+    탐지 결과 응답 데이터 클래스 (확장)
+    
+    Attributes:
+        prediction: 예측 결과 ('ATTACK' or 'NORMAL')
+        latency_ms: 탐지 소요 시간 (밀리초)
+        financial_loss: 탐지까지 발생한 예상 피해금액 (USD)
+        service_downtime_sec: 방어 조치로 인한 서비스 중단 시간 (초)
+        micro_available: 소액결제 서비스 가용 여부 (True=유지, False=중단)
+        freeze_scope: 동결 범위 ('none', 'selective', 'full_network')
+        response_action: 방어 조치 유형 ('none', 'pause_macro', 'freeze_wallet', 'pause_all')
+    """
+    prediction: str
+    latency_ms: float
+    financial_loss: float = 0.0
+    service_downtime_sec: float = 0.0
+    micro_available: bool = True
+    freeze_scope: str = 'none'       # none, selective, full_network
+    response_action: str = 'none'    # none, pause_macro, freeze_wallet, pause_all
 
 
 class DetectionSystem(ABC):
@@ -37,7 +63,7 @@ class DetectionSystem(ABC):
     @abstractmethod
     def detect(self, scenario: Scenario) -> Tuple[str, float]:
         """
-        시나리오를 분석하여 탐지 결과 반환
+        시나리오를 분석하여 탐지 결과 반환 (기본 인터페이스)
         
         Args:
             scenario: 분석할 시나리오
@@ -48,6 +74,24 @@ class DetectionSystem(ABC):
             - 탐지 지연시간: 밀리초 단위
         """
         pass
+    
+    def detect_extended(self, scenario: Scenario) -> DetectionResponse:
+        """
+        확장된 탐지 결과 반환 (피해금액, 서비스 중단 시간 포함)
+        서브클래스에서 오버라이드하여 시스템별 특성 반영
+        
+        기본 구현: detect()를 호출하고 기본 DetectionResponse 반환
+        """
+        prediction, latency_ms = self.detect(scenario)
+        return DetectionResponse(
+            prediction=prediction,
+            latency_ms=latency_ms,
+            financial_loss=0.0,
+            service_downtime_sec=0.0,
+            micro_available=True,
+            freeze_scope='none',
+            response_action='none'
+        )
     
     def get_name(self) -> str:
         """시스템 이름 반환"""
@@ -71,6 +115,55 @@ class DetectionSystem(ABC):
         """탐지 통계 기록 (내부용)"""
         self._detection_count += 1
         self._total_latency += latency_ms
+    
+    def _estimate_financial_loss(self, scenario: Scenario, latency_ms: float, 
+                                  detected: bool) -> float:
+        """
+        탐지 지연 시간 동안 발생한 예상 피해금액 계산 (USD)
+        
+        로직:
+        - 공격이 탐지되지 않으면(FN): 전체 공격 금액 손실
+        - 공격이 탐지되면(TP): 탐지 지연 시간에 비례한 부분 손실
+        - 정상 거래: 피해 없음
+        
+        Args:
+            scenario: 시나리오
+            latency_ms: 탐지 지연 시간
+            detected: 공격으로 탐지했는지 여부
+        """
+        if not scenario.is_attack():
+            return 0.0  # 정상 거래는 피해 없음
+        
+        # 공격 금액 추출
+        attack_amount = scenario.parameters.get('amount', 
+                        scenario.parameters.get('total_amount',
+                        scenario.parameters.get('loan_amount', 0)))
+        
+        if not detected:
+            # 미탐 (FN): 전체 금액 손실
+            return float(attack_amount)
+        
+        # 탐지 성공 (TP): 지연 시간에 비례한 피해
+        # 빠를수록 피해 적음, 느릴수록 피해 큼
+        # 가정: 공격이 진행되는 속도에 따라 피해 발생
+        # 1초(1000ms) 이내 탐지 → 피해 5% 미만
+        # 5초(5000ms) → 피해 50%
+        # 10초 이상 → 피해 90%
+        
+        if latency_ms <= 200:
+            loss_ratio = 0.02  # 초고속 탐지: 2% 손실
+        elif latency_ms <= 500:
+            loss_ratio = 0.05  # 빠른 탐지: 5% 손실
+        elif latency_ms <= 1000:
+            loss_ratio = 0.10  # 보통: 10% 손실
+        elif latency_ms <= 3000:
+            loss_ratio = 0.30  # 느림: 30% 손실
+        elif latency_ms <= 5000:
+            loss_ratio = 0.50  # 매우 느림: 50% 손실
+        else:
+            loss_ratio = 0.80  # 초과: 80% 손실
+        
+        return float(attack_amount) * loss_ratio
     
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name='{self.name}')"

@@ -1,6 +1,6 @@
 """
 5_Benchmark_Experiment.py
-객관적 평가 지표(Precision, Recall, F1-Score, Latency) 측정을 위한 벤치마크 실험 페이지
+객관적 평가 지표(Precision, Recall, F1-Score, Latency) + 확장 지표(피해금액, 가용성) 측정
 """
 
 import streamlit as st
@@ -14,7 +14,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'lib'))
 
-from lib.benchmark.scenario import Scenario, ScenarioType, ScenarioLabel
+from lib.benchmark.scenario import Scenario, ScenarioType
 from lib.benchmark.data_generator import BenchmarkDataGenerator
 from lib.benchmark.metrics_collector import MetricsCollector
 from lib.benchmark.experiment_runner import BatchExperimentRunner, ExperimentConfig
@@ -26,19 +26,20 @@ from lib.benchmark.detection_systems import (
 
 # Page Config
 st.set_page_config(
-    page_title="Benchmark Experiment", 
+    page_title="Benchmark Experiment - FDS Research", 
     page_icon="📊", 
     layout="wide"
 )
 
 st.title("📊 객관적 평가 벤치마크 실험")
 st.markdown("""
-이 페이지에서는 **Precision, Recall, F1-Score, Latency** 등 객관적 평가 지표를 측정하여
+이 페이지에서는 기존 탐지 지표뿐만 아니라 **비즈니스 관점의 핵심 지표(피해금액, 서비스 중단 시간)**를 포함하여
 세 가지 시스템을 정량적으로 비교합니다.
 
-- **기존 수동 거버넌스**: 인간이 모니터링하고 판단하는 방식 (Baseline)
-- **FDS 단일 토큰**: 자동화된 임계값 기반 탐지
-- **FDS 2계층 토큰**: Micro/Macro 분리로 선택적 차단 (제안 모델)
+#### 비교 대상
+1. **기존 수동 거버넌스**: 인간 모니터링, 공격 시 전체 네트워크 중단 (Baseline)
+2. **FDS 단일 토큰**: 자동 탐지, 공격 시 전체 토큰 일시정지
+3. **FDS 2계층 토큰**: Micro/Macro 분리, **Macro만 정지하고 소액결제는 무중단 유지** (제안 모델)
 """)
 
 # ============================================================================
@@ -162,7 +163,8 @@ else:
         config = ExperimentConfig(
             iterations=iterations,
             shuffle_per_iteration=True,
-            random_seed=random_seed
+            random_seed=random_seed,
+            use_extended=True  # 확장 지표 사용
         )
         
         runner = BatchExperimentRunner(
@@ -203,37 +205,60 @@ else:
 # ============================================================================
 if st.session_state.benchmark_results:
     st.divider()
-    st.subheader("📈 실험 결과")
+    st.subheader("📈 실험 결과 분석")
     
     results = st.session_state.benchmark_results
     collectors = results['collectors']
     runner = results['runner']
     
-    # 1. 핵심 비교 표
-    st.markdown("### 🏆 시스템 비교 (핵심 지표)")
+    # 1. 핵심 비교 표 (종합)
+    st.markdown("### 🏆 시스템 성능 종합 비교")
     
     comparison_data = []
     for name, collector in collectors.items():
         summary = collector.get_summary()
         comparison_data.append({
             '시스템 구성': name,
+            # 성능
             'Precision': f"{summary['precision']:.2f}",
             'Recall': f"{summary['recall']:.2f}",
             'F1-Score': f"{summary['f1_score']:.2f}",
             'Latency': f"{summary['latency']['avg_ms']:.0f}ms",
-            '정확도': f"{summary['accuracy']*100:.1f}%"
+            # 비즈니스 임팩트
+            '피해금액(총)': f"${summary['financial_loss']['total_usd']:,.0f}",
+            '평균 서비스 중단': f"{summary['service_downtime']['avg_per_detection_min']:.1f}분",
+            '소액결제 가용률': f"{summary['availability']['micro_availability']*100:.1f}%"
         })
     
     comparison_df = pd.DataFrame(comparison_data)
-    st.dataframe(comparison_df, use_container_width=True, hide_index=True)
     
-    # 2. 시각화 차트들
-    st.markdown("### 📊 시각화")
+    # 강조 표시를 위한 스타일링
+    st.dataframe(
+        comparison_df, 
+        use_container_width=True, 
+        hide_index=True,
+        column_config={
+            '소액결제 가용률': st.column_config.ProgressColumn(
+                "소액결제 가용률",
+                format="%s",
+                min_value=0,
+                max_value=100,
+            ),
+        }
+    )
     
-    tab1, tab2, tab3, tab4 = st.tabs(["메트릭 비교", "혼동 행렬", "Latency 분포", "상세 분석"])
+    # 2. 상세 시각화
+    st.markdown("### 📊 상세 지표 시각화")
     
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "🛡️ 보안 성능 (Precision/Recall)", 
+        "💰 피해 규모 및 중단 시간", 
+        "🚦 서비스 가용성",
+        "⚡ Latency & 기타"
+    ])
+    
+    # Tab 1: 보안 성능
     with tab1:
-        # 메트릭 비교 바 차트
         metrics_data = []
         for name, collector in collectors.items():
             summary = collector.get_summary()
@@ -246,89 +271,125 @@ if st.session_state.benchmark_results:
         metrics_df = pd.DataFrame(metrics_data)
         
         chart = alt.Chart(metrics_df).mark_bar().encode(
-            x=alt.X('Metric:N', title='평가 지표'),
-            y=alt.Y('Value:Q', title='점수', scale=alt.Scale(domain=[0, 1])),
+            x=alt.X('Metric:N', title='평가 지표', axis=alt.Axis(labelAngle=0)),
+            y=alt.Y('Value:Q', title='점수 (0~1)', scale=alt.Scale(domain=[0, 1])),
             color=alt.Color('System:N', title='시스템'),
-            xOffset='System:N'
+            xOffset='System:N',
+            tooltip=['System', 'Metric', 'Value']
         ).properties(
             width=600,
             height=400,
-            title='시스템별 평가 지표 비교'
+            title='탐지 정확도 비교'
         )
-        
         st.altair_chart(chart, use_container_width=True)
     
+    # Tab 2: 피해 규모 및 중단 시간
     with tab2:
-        # 혼동 행렬
-        st.markdown("**각 시스템의 혼동 행렬 (TP/TN/FP/FN)**")
+        col_loss, col_downtime = st.columns(2)
         
-        cm_cols = st.columns(3)
-        for idx, (name, collector) in enumerate(collectors.items()):
-            cm = collector.get_confusion_matrix()
-            with cm_cols[idx]:
-                st.markdown(f"**{name}**")
-                cm_df = pd.DataFrame([
-                    ['', '예측: 공격', '예측: 정상'],
-                    ['실제: 공격', f"TP: {cm['TP']}", f"FN: {cm['FN']}"],
-                    ['실제: 정상', f"FP: {cm['FP']}", f"TN: {cm['TN']}"]
-                ])
-                st.dataframe(cm_df, hide_index=True, use_container_width=True)
-    
+        with col_loss:
+            st.markdown("**💸 총 예상 피해금액 (낮을수록 좋음)**")
+            loss_data = []
+            for name, collector in collectors.items():
+                loss = collector.get_summary()['financial_loss']['total_usd']
+                loss_data.append({'System': name, 'Total Loss ($)': loss})
+            
+            loss_chart = alt.Chart(pd.DataFrame(loss_data)).mark_bar().encode(
+                x=alt.X('System:N', title='시스템', axis=alt.Axis(labelAngle=0)),
+                y=alt.Y('Total Loss ($):Q', title='피해금액 ($)'),
+                color=alt.Color('System:N'),
+                tooltip=['System', 'Total Loss ($)']
+            ).properties(height=350)
+            st.altair_chart(loss_chart, use_container_width=True)
+            
+        with col_downtime:
+            st.markdown("**⏱️ 공격 탐지 1건당 평균 서비스 중단 시간 (낮을수록 좋음)**")
+            downtime_data = []
+            for name, collector in collectors.items():
+                dt = collector.get_summary()['service_downtime']['avg_per_detection_min']
+                downtime_data.append({'System': name, 'Avg Downtime (min)': dt})
+            
+            dt_chart = alt.Chart(pd.DataFrame(downtime_data)).mark_bar().encode(
+                x=alt.X('System:N', title='시스템', axis=alt.Axis(labelAngle=0)),
+                y=alt.Y('Avg Downtime (min):Q', title='평균 중단 시간 (분)'),
+                color=alt.Color('System:N'),
+                tooltip=['System', 'Avg Downtime (min)']
+            ).properties(height=350)
+            st.altair_chart(dt_chart, use_container_width=True)
+            
+    # Tab 3: 서비스 가용성
     with tab3:
-        # Latency 비교
+        st.markdown("**🟢 소액결제 서비스 가용률 비교**")
+        st.caption("공격 발생 및 대응 중에도 일반 사용자의 소액결제가 가능한 비율입니다.")
+        
+        avail_data = []
+        for name, collector in collectors.items():
+            avail = collector.get_summary()['availability']['micro_availability']
+            avail_data.append({'System': name, 'Availability': avail})
+            
+        avail_chart = alt.Chart(pd.DataFrame(avail_data)).mark_bar().encode(
+            y=alt.Y('System:N', title='시스템'),
+            x=alt.X('Availability:Q', title='가용률 (0~1)', scale=alt.Scale(domain=[0, 1])),
+            color=alt.Color('System:N'),
+            tooltip=['System', alt.Tooltip('Availability', format='.1%')]
+        ).properties(height=300)
+        st.altair_chart(avail_chart, use_container_width=True)
+        
+        st.markdown("**❄️ 동결 범위 분포 (Freeze Scope)**")
+        st.caption("방어 조치가 전체 네트워크에 영향을 미치는지, 선별적인지 보여줍니다.")
+        
+        freeze_data = []
+        for name, collector in collectors.items():
+            dist = collector.get_summary()['availability']['freeze_scope_distribution']
+            for scope, count in dist.items():
+                if count > 0:
+                    freeze_data.append({'System': name, 'Scope': scope, 'Count': count})
+        
+        freeze_chart = alt.Chart(pd.DataFrame(freeze_data)).mark_arc().encode(
+            theta=alt.Theta("Count", stack=True),
+            color=alt.Color("Scope", legend=alt.Legend(title="동결 범위")),
+            column=alt.Column("System", header=alt.Header(titleOrient="bottom", labelOrient="bottom")),
+            tooltip=["System", "Scope", "Count"]
+        ).properties(width=200, height=200)
+        st.altair_chart(freeze_chart)
+    
+    # Tab 4: Latency & 기타
+    with tab4:
         latency_data = []
         for name, collector in collectors.items():
             summary = collector.get_summary()
             latency_data.append({
                 'System': name,
                 'Average': summary['latency']['avg_ms'],
-                'Median': summary['latency']['median_ms'],
-                'P95': summary['latency']['p95_ms'],
-                'Max': summary['latency']['max_ms']
+                'P95': summary['latency']['p95_ms']
             })
         
-        latency_df = pd.DataFrame(latency_data)
+        lat_df = pd.melt(pd.DataFrame(latency_data), id_vars=['System'], var_name='Metric', value_name='ms')
         
-        # 바 차트
-        latency_melt = pd.melt(
-            latency_df, 
-            id_vars=['System'], 
-            value_vars=['Average', 'Median', 'P95'],
-            var_name='Metric',
-            value_name='Latency (ms)'
-        )
-        
-        latency_chart = alt.Chart(latency_melt).mark_bar().encode(
-            x=alt.X('System:N', title='시스템'),
-            y=alt.Y('Latency (ms):Q', title='지연시간 (ms)'),
+        lat_chart = alt.Chart(lat_df).mark_bar().encode(
+            x=alt.X('System:N', axis=alt.Axis(labelAngle=0)),
+            y=alt.Y('ms:Q', title='Latency (ms)'),
             color='Metric:N',
             xOffset='Metric:N'
-        ).properties(
-            width=600,
-            height=400,
-            title='시스템별 Latency 비교'
-        )
+        ).properties(height=350)
+        st.altair_chart(lat_chart, use_container_width=True)
         
-        st.altair_chart(latency_chart, use_container_width=True)
-        
-        st.markdown("**Latency 상세 (ms)**")
-        st.dataframe(latency_df, use_container_width=True, hide_index=True)
-    
-    with tab4:
-        # 상세 분석
-        selected_system = st.selectbox(
-            "분석할 시스템 선택",
-            options=list(collectors.keys())
-        )
-        
-        if selected_system:
-            collector = collectors[selected_system]
-            summary = collector.get_summary()
-            
-            st.json(summary)
-    
+        # 혼동 행렬
+        st.markdown("**혼동 행렬 (Confusion Matrix)**")
+        cm_cols = st.columns(3)
+        for idx, (name, collector) in enumerate(collectors.items()):
+            cm = collector.get_confusion_matrix()
+            with cm_cols[idx]:
+                st.markdown(f"**{name}**")
+                cm_df = pd.DataFrame([
+                    ['실제: 공격', f"TP: {cm['TP']}", f"FN: {cm['FN']}"],
+                    ['실제: 정상', f"FP: {cm['FP']}", f"TN: {cm['TN']}"]
+                ], columns=['', '예측: 공격', '예측: 정상'])
+                st.dataframe(cm_df, hide_index=True, use_container_width=True)
+
     # 3. 데이터 내보내기
-    st.markdown("### 💾 결과 내보내기")
+    st.divider()
+    st.markdown("### 💾 보고서 및 데이터 내보내기")
     
     col_exp1, col_exp2, col_exp3 = st.columns(3)
     
@@ -358,22 +419,22 @@ if st.session_state.benchmark_results:
         latex_table = f"""
 \\begin{{table}}[h]
 \\centering
-\\caption{{Baseline 비교 (객관적 평가)}}
-\\begin{{tabular}}{{lcccr}}
+\\caption{{FDS 시스템별 성능 및 비즈니스 영향 비교}}
+\\begin{{tabular}}{{lcccccc}}
 \\hline
-시스템 구성 & Precision & Recall & F1-Score & Latency \\\\
+시스템 & Precision & Recall & Latency & 피해금액 & 중단시간 & 가용성 \\\\
 \\hline
 """
         for name, collector in collectors.items():
             s = collector.get_summary()
-            latex_table += f"{name} & {s['precision']:.2f} & {s['recall']:.2f} & {s['f1_score']:.2f} & {s['latency']['avg_ms']:.0f}ms \\\\\n"
+            latex_table += f"{name} & {s['precision']:.2f} & {s['recall']:.2f} & {s['latency']['avg_ms']:.0f}ms & \${s['financial_loss']['total_usd']:,.0f} & {s['service_downtime']['avg_per_detection_min']:.1f}min & {s['availability']['micro_availability']*100:.1f}\\% \\\\\n"
         
         latex_table += """\\hline
 \\end{tabular}
 \\end{table}
 """
         st.download_button(
-            "📥 LaTeX 표",
+            "📥 LaTeX 표 (논문용)",
             latex_table,
             "benchmark_table.tex",
             "text/plain"
@@ -386,20 +447,38 @@ st.divider()
 st.subheader("🎯 목표 결과 vs 실험 결과")
 
 target_df = pd.DataFrame([
-    {'시스템': '기존 수동 거버넌스', 'Precision': 0.75, 'Recall': 0.60, 'F1-Score': 0.67, 'Latency': '5000ms'},
-    {'시스템': 'FDS 단일 토큰', 'Precision': 0.88, 'Recall': 0.82, 'F1-Score': 0.85, 'Latency': '350ms'},
-    {'시스템': 'FDS 2계층 토큰', 'Precision': 0.94, 'Recall': 0.91, 'F1-Score': 0.93, 'Latency': '120ms'},
+    {
+        '시스템': '기존 수동 거버넌스', 
+        'Precision': 0.75, 
+        'Recall': 0.60, 
+        'Latency': '5000ms',
+        '피해금액': 'High',
+        '서비스 중단': '60분 이상',
+        '소액결제 가용성': '불가 (0%)'
+    },
+    {
+        '시스템': 'FDS 단일 토큰', 
+        'Precision': 0.88, 
+        'Recall': 0.82, 
+        'Latency': '350ms',
+        '피해금액': 'Medium',
+        '서비스 중단': '15분 내외',
+        '소액결제 가용성': '불가 (0%)'
+    },
+    {
+        '시스템': 'FDS 2계층 토큰', 
+        'Precision': 0.94, 
+        'Recall': 0.91, 
+        'Latency': '120ms',
+        '피해금액': 'Low (최소화)',
+        '서비스 중단': '< 5분 (Macro만)',
+        '소액결제 가용성': '가능 (100%)'
+    },
 ])
 
-st.markdown("**📌 목표 결과 (논문 기준)**")
+st.markdown("**📌 논문 목표 기준**")
 st.dataframe(target_df, use_container_width=True, hide_index=True)
 
 if st.session_state.benchmark_results:
-    st.markdown("**📊 실제 실험 결과**")
+    st.markdown("**📊 실제 실험 결과 (요약)**")
     st.dataframe(comparison_df, use_container_width=True, hide_index=True)
-    
-    st.info("""
-    💡 **참고**: 실험 결과는 랜덤성이 포함되어 있어 실행마다 약간 다를 수 있습니다.
-    - 반복 횟수를 늘리면 통계적으로 더 안정적인 결과를 얻을 수 있습니다.
-    - 랜덤 시드를 고정하면 동일한 결과를 재현할 수 있습니다.
-    """)

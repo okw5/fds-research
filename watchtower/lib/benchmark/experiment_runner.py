@@ -1,6 +1,8 @@
 """
 BatchExperimentRunner
 대규모 자동화 실험 실행 및 결과 집계
+
+v2: detect_extended() 활용하여 피해금액, 서비스 중단 시간 등 확장 지표 수집
 """
 
 import time
@@ -30,6 +32,7 @@ class ExperimentConfig:
     random_seed: Optional[int] = None   # 랜덤 시드
     export_path: Optional[str] = None   # 결과 내보내기 경로
     verbose: bool = True                # 상세 로그
+    use_extended: bool = True           # 확장 탐지 사용 (피해금액, 중단시간 등)
 
 
 class BatchExperimentRunner:
@@ -41,6 +44,7 @@ class BatchExperimentRunner:
     - N회 반복 실험으로 통계적 유의성 확보
     - 결과 집계 및 비교 표 생성
     - CSV/JSON 내보내기
+    - 확장 지표 수집 (피해금액, 서비스 중단 시간, 가용성)
     """
     
     def __init__(self, 
@@ -98,11 +102,14 @@ class BatchExperimentRunner:
                     random.shuffle(self.dataset)
                 
                 for scenario in self.dataset:
-                    # 탐지 실행
-                    prediction, latency_ms = system.detect(scenario)
-                    
-                    # 결과 기록
-                    collector.record_from_scenario(scenario, prediction, latency_ms)
+                    if self.config.use_extended:
+                        # 확장 탐지 사용 (피해금액, 중단시간 포함)
+                        response = system.detect_extended(scenario)
+                        collector.record_from_response(scenario, response)
+                    else:
+                        # 기본 탐지만 사용
+                        prediction, latency_ms = system.detect(scenario)
+                        collector.record_from_scenario(scenario, prediction, latency_ms)
                     
                     # 진행률 업데이트
                     self.completed_experiments += 1
@@ -143,6 +150,7 @@ class BatchExperimentRunner:
                 'dataset_size': len(self.dataset),
                 'iterations': self.config.iterations,
                 'total_experiments': self.total_experiments,
+                'use_extended': self.config.use_extended,
                 'timestamp': datetime.now().isoformat()
             },
             'systems': {}
@@ -195,21 +203,20 @@ class BatchExperimentRunner:
     
     def print_summary(self):
         """콘솔에 요약 출력"""
-        print("\n" + "=" * 70)
+        print("\n" + "=" * 100)
         print("실험 결과 요약")
-        print("=" * 70)
+        print("=" * 100)
         
         table = self.get_comparison_table()
         
         # 헤더
-        headers = list(table[0].keys()) if table else []
-        print(f"{'시스템':<20} {'Precision':<12} {'Recall':<12} {'F1-Score':<12} {'Latency (ms)':<12}")
-        print("-" * 70)
+        print(f"{'시스템':<20} {'Precision':<12} {'Recall':<12} {'F1-Score':<12} {'Latency':<12} {'피해금액($)':<14} {'중단시간(분)':<14} {'소액가용률':<12}")
+        print("-" * 100)
         
         for row in table:
-            print(f"{row['System']:<20} {row['Precision']:<12} {row['Recall']:<12} {row['F1-Score']:<12} {row['Latency (ms)']:<12}")
+            print(f"{row['System']:<20} {row['Precision']:<12} {row['Recall']:<12} {row['F1-Score']:<12} {row['Latency (ms)']:<12} {row['Financial Loss ($)']:<14} {row['Avg Downtime (min)']:<14} {row['Micro Availability']:<12}")
         
-        print("=" * 70 + "\n")
+        print("=" * 100 + "\n")
     
     def reset(self):
         """실행기 초기화"""
@@ -260,7 +267,7 @@ class QuickBenchmark:
         ]
         
         # 실험 실행
-        config = ExperimentConfig(iterations=1, random_seed=seed)
+        config = ExperimentConfig(iterations=1, random_seed=seed, use_extended=True)
         runner = BatchExperimentRunner(systems, dataset, config)
         results = runner.run_all()
         
@@ -298,7 +305,8 @@ class QuickBenchmark:
         config = ExperimentConfig(
             iterations=iterations,
             shuffle_per_iteration=True,
-            random_seed=seed
+            random_seed=seed,
+            use_extended=True
         )
         
         runner = BatchExperimentRunner(systems, dataset, config)

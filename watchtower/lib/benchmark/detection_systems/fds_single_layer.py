@@ -8,11 +8,13 @@ FDS 단일 토큰 탐지 시스템
 - 높은 탐지율 (약 85%)
 - 낮은 오탐율 (약 5%)
 - 네트워크 혼잡 시 지연 증가
+- 공격 탐지 시: 전체 토큰 일시정지 (Pause)
+- 중단 시간: 5~30분 (자동화된 조사 후 수동 복구)
 """
 
 import random
 from typing import Tuple, Dict, Any, Optional
-from .base import DetectionSystem, DetectionConfig
+from .base import DetectionSystem, DetectionConfig, DetectionResponse
 
 # 조건부 임포트: 패키지 모드와 직접 실행 모드 지원
 try:
@@ -36,6 +38,7 @@ class FDSSingleLayerSystem(DetectionSystem):
     한계:
     - 전체 시스템 중단 (가용성 0%)
     - 네트워크 혼잡 시 서킷 브레이커 지연
+    - 단일 토큰이므로 소액/거액 구분 없이 전체 정지
     """
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -67,6 +70,54 @@ class FDSSingleLayerSystem(DetectionSystem):
         
         self._record_detection(latency_ms)
         return (prediction, latency_ms)
+    
+    def detect_extended(self, scenario: Scenario) -> DetectionResponse:
+        """
+        확장된 탐지 결과 (피해금액 + 서비스 중단 시간 포함)
+        
+        FDS 단일 토큰의 특징:
+        - 자동으로 빠르게 탐지하나, 방어 시 전체 토큰 일시정지 (Pause)
+        - 단일 토큰이므로 소액결제도 함께 중단
+        - 자동 분석 후 수동 복구 필요 → 5~30분 소요
+        """
+        prediction, latency_ms = self.detect(scenario)
+        detected_as_attack = (prediction == 'ATTACK')
+        
+        # 피해금액 계산
+        financial_loss = self._estimate_financial_loss(
+            scenario, latency_ms, detected_as_attack
+        )
+        
+        # 서비스 중단 시간 계산
+        service_downtime_sec = 0.0
+        micro_available = True
+        freeze_scope = 'none'
+        response_action = 'none'
+        
+        if detected_as_attack:
+            # 단일 토큰: 공격 탐지 시 전체 토큰 Pause
+            # 자동 분석 완료 후 수동 복구 → 5~30분(300~1800초)
+            service_downtime_sec = random.uniform(300, 1800)  # 5~30분
+            
+            # 네트워크 혼잡 시 추가 지연
+            if scenario.network_condition == 'congested':
+                service_downtime_sec *= 1.3
+            elif scenario.network_condition == 'severe':
+                service_downtime_sec *= 1.5
+            
+            micro_available = False  # ★ 핵심: 소액결제도 전부 중단
+            freeze_scope = 'full_network'  # 전체 네트워크 동결
+            response_action = 'pause_all'  # 전체 정지
+        
+        return DetectionResponse(
+            prediction=prediction,
+            latency_ms=latency_ms,
+            financial_loss=financial_loss,
+            service_downtime_sec=service_downtime_sec,
+            micro_available=micro_available,
+            freeze_scope=freeze_scope,
+            response_action=response_action
+        )
     
     def _run_detection_algorithms(self, scenario: Scenario) -> str:
         """다중 탐지 알고리즘 실행"""

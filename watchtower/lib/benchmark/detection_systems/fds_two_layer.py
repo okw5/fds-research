@@ -9,11 +9,16 @@ FDS 2계층 토큰 탐지 시스템 (제안 모델)
 - 매우 낮은 오탐율 (약 2%)
 - 네트워크 혼잡에도 안정적 (우선 처리)
 - 높은 가용성 (Micro 계층 정상 운영)
+
+★ 핵심 장점:
+- 공격 탐지 시: Macro만 정지, Micro(소액결제)는 정상 운영 유지
+- 피해금액 최소화: 빠른 탐지 + 선택적 동결
+- 서비스 중단 시간: 거의 0 (소액 관점)
 """
 
 import random
 from typing import Tuple, Dict, Any, Optional
-from .base import DetectionSystem, DetectionConfig
+from .base import DetectionSystem, DetectionConfig, DetectionResponse
 
 # 조건부 임포트: 패키지 모드와 직접 실행 모드 지원
 try:
@@ -37,6 +42,8 @@ class FDSTwoLayerSystem(DetectionSystem):
     - 선택적 차단: 거액만 정지, 소액은 계속 운영
     - 빠른 반응: 우선순위 Gas로 혼잡 대응
     - 높은 정확도: 다중 계층 검증
+    - 피해금액 최소화: 초고속 탐지 + 선택적 동결
+    - 서비스 연속성: 소액결제 중단 없음
     """
     
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -68,6 +75,67 @@ class FDSTwoLayerSystem(DetectionSystem):
         
         self._record_detection(latency_ms)
         return (prediction, latency_ms)
+    
+    def detect_extended(self, scenario: Scenario) -> DetectionResponse:
+        """
+        확장된 탐지 결과 (피해금액 + 서비스 중단 시간 포함)
+        
+        ★ FDS 2계층의 핵심 장점을 반영:
+        - Macro만 선택적으로 정지 → 소액결제(Micro) 정상 운영 유지
+        - 빠른 탐지(120ms) → 피해금액 최소화
+        - 자동 복구 가능 → 서비스 중단 시간 최소
+        - 지갑 동결(freeze_wallet)로 정밀 대응
+        """
+        prediction, latency_ms = self.detect(scenario)
+        detected_as_attack = (prediction == 'ATTACK')
+        
+        # Macro/Micro 구분
+        is_macro = self._is_macro_transaction(scenario)
+        
+        # 피해금액 계산 (2계층은 더 작은 피해)
+        financial_loss = self._estimate_financial_loss(
+            scenario, latency_ms, detected_as_attack
+        )
+        
+        # 서비스 중단 시간 계산 - 2계층의 핵심 차별점
+        service_downtime_sec = 0.0
+        micro_available = True  # ★ 소액결제는 항상 유지
+        freeze_scope = 'none'
+        response_action = 'none'
+        
+        if detected_as_attack:
+            if is_macro:
+                # Macro 공격: Macro 계층만 선택적 정지
+                # 자동 분석 + 지갑 동결로 빠른 대응 → 1~5분
+                service_downtime_sec = random.uniform(60, 300)  # 1~5분 (Macro만)
+                
+                micro_available = True  # ★ 소액결제는 계속 운영!
+                freeze_scope = 'selective'  # 선택적 동결 (Macro만)
+                response_action = 'pause_macro'  # Macro만 정지
+            else:
+                # Micro 계층에서 탐지된 공격: 해당 지갑만 동결
+                # 서비스 중단 없음 - 해당 지갑만 차단
+                service_downtime_sec = 0.0  # 서비스 중단 없음!
+                
+                micro_available = True  # 다른 소액결제는 정상
+                freeze_scope = 'selective'  # 해당 지갑만 동결
+                response_action = 'freeze_wallet'  # 지갑 동결
+            
+            # 네트워크 혼잡 시에도 최소한의 추가 지연만
+            if scenario.network_condition == 'congested':
+                service_downtime_sec *= 1.1  # 10% 추가만
+            elif scenario.network_condition == 'severe':
+                service_downtime_sec *= 1.2  # 20% 추가만
+        
+        return DetectionResponse(
+            prediction=prediction,
+            latency_ms=latency_ms,
+            financial_loss=financial_loss,
+            service_downtime_sec=service_downtime_sec,
+            micro_available=micro_available,
+            freeze_scope=freeze_scope,
+            response_action=response_action
+        )
     
     def _run_two_layer_detection(self, scenario: Scenario) -> str:
         """2계층 탐지 알고리즘"""
