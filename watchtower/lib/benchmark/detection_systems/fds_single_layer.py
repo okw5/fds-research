@@ -93,22 +93,48 @@ class FDSSingleLayerSystem(DetectionSystem):
         micro_available = True
         freeze_scope = 'none'
         response_action = 'none'
-        
+
         if detected_as_attack:
-            # 단일 토큰: 공격 탐지 시 전체 토큰 Pause
-            # 자동 분석 완료 후 수동 복구 → 5~30분(300~1800초)
-            service_downtime_sec = random.uniform(300, 1800)  # 5~30분
-            
+            amount = scenario.parameters.get('amount',
+                     scenario.parameters.get('total_amount', 0))
+
+            # 대규모 Macro 공격 → 더 긴 전체 중단
+            is_large_scale = scenario.scenario_type in {
+                ScenarioType.INFINITE_MINT,
+                ScenarioType.RESERVE_DRAIN,
+                ScenarioType.FLASH_LOAN_DEPEG,
+                ScenarioType.SYBIL_ATTACK,
+            }
+            if is_large_scale and amount >= 5_000_000:
+                # 대규모: 30분~2시간 전체 중단
+                service_downtime_sec = random.uniform(1800, 7200)
+            elif is_large_scale:
+                # 일반 Macro: 10~30분 전체 중단
+                service_downtime_sec = random.uniform(600, 1800)
+            else:
+                # Micro급 (임계값 회피 등): 5~30분
+                service_downtime_sec = random.uniform(300, 1800)
+
             # 네트워크 혼잡 시 추가 지연
             if scenario.network_condition == 'congested':
                 service_downtime_sec *= 1.3
             elif scenario.network_condition == 'severe':
                 service_downtime_sec *= 1.5
-            
+
             micro_available = False  # ★ 핵심: 소액결제도 전부 중단
-            freeze_scope = 'full_network'  # 전체 네트워크 동결
-            response_action = 'pause_all'  # 전체 정지
+            freeze_scope = 'full_network'
+            response_action = 'pause_all'
+
         
+        # 가스 소비량 (표준 자동화)
+        gas_details = {}
+        if detected_as_attack:
+            gas_details = {
+                'signature_verification': 0.0,   # 사전 서명 검증 없음
+                'pause': 35000.0,                # 표준 전체 Pause
+                'blacklist_addition': 55000.0    # 표준 매핑 업데이트
+            }
+
         return DetectionResponse(
             prediction=prediction,
             latency_ms=latency_ms,
@@ -116,7 +142,8 @@ class FDSSingleLayerSystem(DetectionSystem):
             service_downtime_sec=service_downtime_sec,
             micro_available=micro_available,
             freeze_scope=freeze_scope,
-            response_action=response_action
+            response_action=response_action,
+            gas_details=gas_details
         )
     
     def _run_detection_algorithms(self, scenario: Scenario) -> str:

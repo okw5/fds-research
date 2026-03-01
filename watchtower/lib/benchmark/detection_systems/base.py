@@ -7,7 +7,7 @@ v2: 피해금액, 서비스 중단 시간, 서비스 가용성 지표 추가
 
 from abc import ABC, abstractmethod
 from typing import Tuple, Dict, Any, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # 조건부 임포트: 패키지 모드와 직접 실행 모드 지원
 try:
@@ -40,6 +40,7 @@ class DetectionResponse:
     micro_available: bool = True
     freeze_scope: str = 'none'       # none, selective, full_network
     response_action: str = 'none'    # none, pause_macro, freeze_wallet, pause_all
+    gas_details: Dict[str, float] = field(default_factory=dict)
 
 
 class DetectionSystem(ABC):

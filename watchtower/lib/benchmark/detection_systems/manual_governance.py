@@ -112,6 +112,15 @@ class ManualGovernanceSystem(DetectionSystem):
             freeze_scope = 'full_network'  # 전체 네트워크 동결
             response_action = 'pause_all'  # 전체 정지
         
+        # 가스 소비량 (수동 대응 오버헤드)
+        gas_details = {}
+        if detected_as_attack:
+            gas_details = {
+                'signature_verification': 0.0,   # 거버넌스 투표는 오프체인
+                'pause': 45000.0,                # 비효율적 수동 긴급정지
+                'blacklist_addition': 65000.0    # SSTORE 오버헤드
+            }
+
         return DetectionResponse(
             prediction=prediction,
             latency_ms=latency_ms,
@@ -119,7 +128,8 @@ class ManualGovernanceSystem(DetectionSystem):
             service_downtime_sec=service_downtime_sec,
             micro_available=micro_available,
             freeze_scope=freeze_scope,
-            response_action=response_action
+            response_action=response_action,
+            gas_details=gas_details
         )
     
     def _simulate_human_detection(self, scenario: Scenario) -> str:

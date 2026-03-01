@@ -102,31 +102,64 @@ class FDSTwoLayerSystem(DetectionSystem):
         micro_available = True  # ★ 소액결제는 항상 유지
         freeze_scope = 'none'
         response_action = 'none'
-        
+
         if detected_as_attack:
+            amount = scenario.parameters.get('amount',
+                     scenario.parameters.get('total_amount', 0))
+
+            # ── Macro 공격 ──────────────────────────────────────────────────
             if is_macro:
-                # Macro 공격: Macro 계층만 선택적 정지
-                # 자동 분석 + 지갑 동결로 빠른 대응 → 5~30분 (단일 계층과 동일하게 변경)
-                service_downtime_sec = random.uniform(300, 1800)  # 5~30분 (Macro만)
-                
-                micro_available = True  # ★ 소액결제는 계속 운영!
-                freeze_scope = 'selective'  # 선택적 동결 (Macro만)
-                response_action = 'pause_macro'  # Macro만 정지
+                # 대규모 무한 발행 / 준비금 탈취 / 플래시론 → 규모에 따라 전체 중단
+                is_catastrophic = (
+                    scenario.scenario_type in {
+                        ScenarioType.INFINITE_MINT,
+                        ScenarioType.RESERVE_DRAIN,
+                        ScenarioType.FLASH_LOAN_DEPEG,
+                    } and amount >= 5_000_000  # 500만 토큰 이상 대규모
+                )
+                is_sybil_large = (
+                    scenario.scenario_type == ScenarioType.SYBIL_ATTACK
+                    and scenario.parameters.get('num_wallets', 0) >= 50
+                )
+
+                if is_catastrophic or is_sybil_large:
+                    # ★ 대규모 Macro 공격 → 전체 네트워크 중단 불가피
+                    service_downtime_sec = random.uniform(300, 900)  # 5~15분
+                    freeze_scope = 'full_network'
+                    response_action = 'pause_all'
+                    micro_available = False  # 예외적으로 소액도 중단
+                else:
+                    # 일반 Macro 공격 → Macro 계층만 선택적 정지
+                    service_downtime_sec = random.uniform(120, 600)  # 2~10분
+                    micro_available = True  # ★ 소액결제는 계속 운영!
+                    freeze_scope = 'selective'
+                    response_action = 'pause_macro'
+
+            # ── Micro 공격 ──────────────────────────────────────────────────
             else:
-                # Micro 계층에서 탐지된 공격: 해당 지갑만 동결
-                # 서비스 중단 없음 - 해당 지갑만 차단
-                service_downtime_sec = 0.0  # 서비스 중단 없음!
-                
+                # GRADUAL_ESCALATION / THRESHOLD_EVASION / CAMOUFLAGE
+                # → 해당 지갑만 동결, 서비스 중단 최소화
+                service_downtime_sec = random.uniform(0.5, 30)  # 0.5~30초 (지갑 동결 TX)
                 micro_available = True  # 다른 소액결제는 정상
-                freeze_scope = 'selective'  # 해당 지갑만 동결
-                response_action = 'freeze_wallet'  # 지갑 동결
-            
-            # 네트워크 혼잡 시에도 최소한의 추가 지연만
+                freeze_scope = 'selective'
+                response_action = 'freeze_wallet'
+
+            # 네트워크 혼잡 시 추가 지연
             if scenario.network_condition == 'congested':
-                service_downtime_sec *= 1.1  # 10% 추가만
+                service_downtime_sec *= 1.1
             elif scenario.network_condition == 'severe':
-                service_downtime_sec *= 1.2  # 20% 추가만
+                service_downtime_sec *= 1.2
+
         
+        # 가스 소비량 (2계층 최적화)
+        gas_details = {}
+        if detected_as_attack:
+            gas_details = {
+                'signature_verification': 21000.0, # Macro 전용 사전 서명 검증
+                'pause': 18000.0,                  # 선택적 Pause (최적화)
+                'blacklist_addition': 32000.0       # 효율적 매핑 관리
+            }
+
         return DetectionResponse(
             prediction=prediction,
             latency_ms=latency_ms,
@@ -134,7 +167,8 @@ class FDSTwoLayerSystem(DetectionSystem):
             service_downtime_sec=service_downtime_sec,
             micro_available=micro_available,
             freeze_scope=freeze_scope,
-            response_action=response_action
+            response_action=response_action,
+            gas_details=gas_details
         )
     
     def _run_two_layer_detection(self, scenario: Scenario) -> str:

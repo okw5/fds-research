@@ -30,6 +30,7 @@ class DetectionResult:
     micro_available: bool = True          # 소액결제 가용 여부
     freeze_scope: str = 'none'            # 동결 범위
     response_action: str = 'none'         # 방어 조치
+    gas_details: Dict[str, float] = field(default_factory=dict)  # 단계별 가스 비용
     
     @property
     def is_true_positive(self) -> bool:
@@ -93,21 +94,10 @@ class MetricsCollector:
                service_downtime_sec: float = 0.0,
                micro_available: bool = True,
                freeze_scope: str = 'none',
-               response_action: str = 'none'):
+               response_action: str = 'none',
+               gas_details: Optional[Dict[str, float]] = None):
         """
         탐지 결과 기록
-        
-        Args:
-            scenario_id: 시나리오 고유 ID
-            predicted: 탐지 시스템의 예측 ('ATTACK' or 'NORMAL')
-            actual: Ground Truth ('ATTACK' or 'NORMAL')
-            latency_ms: 탐지 소요 시간 (밀리초)
-            metadata: 추가 메타데이터
-            financial_loss: 피해금액 (USD)
-            service_downtime_sec: 서비스 중단 시간 (초)
-            micro_available: 소액결제 가용 여부
-            freeze_scope: 동결 범위
-            response_action: 방어 조치
         """
         result = DetectionResult(
             scenario_id=scenario_id,
@@ -119,7 +109,8 @@ class MetricsCollector:
             service_downtime_sec=service_downtime_sec,
             micro_available=micro_available,
             freeze_scope=freeze_scope,
-            response_action=response_action
+            response_action=response_action,
+            gas_details=gas_details or {}
         )
         self.results.append(result)
     
@@ -161,7 +152,8 @@ class MetricsCollector:
             service_downtime_sec=response.service_downtime_sec,
             micro_available=response.micro_available,
             freeze_scope=response.freeze_scope,
-            response_action=response.response_action
+            response_action=response.response_action,
+            gas_details=getattr(response, 'gas_details', {})
         )
     
     # =========================================================================
@@ -419,7 +411,26 @@ class MetricsCollector:
     # =========================================================================
     # 요약 및 내보내기
     # =========================================================================
-    
+
+    def calculate_gas_summary(self) -> Dict[str, float]:
+        """가스 소비량 요약 (탐지 건당 평균)"""
+        totals: Dict[str, float] = {
+            'signature_verification': 0.0,
+            'pause': 0.0,
+            'blacklist_addition': 0.0
+        }
+        count = 0
+        for r in self.results:
+            if r.predicted == 'ATTACK' and r.gas_details:
+                count += 1
+                for k in totals:
+                    totals[k] += r.gas_details.get(k, 0.0)
+        avgs: Dict[str, float] = {}
+        if count > 0:
+            avgs = {f'avg_{k}': round(v / count, 0) for k, v in totals.items()}
+        totals.update(avgs)
+        return totals
+
     def get_confusion_matrix(self) -> Dict[str, int]:
         """혼동 행렬 반환"""
         return {
@@ -467,6 +478,7 @@ class MetricsCollector:
                 'freeze_scope_distribution': self.get_freeze_scope_distribution(),
                 'response_action_distribution': self.get_response_action_distribution()
             },
+            'gas_consumption': self.calculate_gas_summary(),
             'collection_time': {
                 'start': self.start_time,
                 'end': self.end_time,
