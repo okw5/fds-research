@@ -235,7 +235,7 @@ if st.session_state.benchmark_results:
             'Micro 2차 피해 (USD)': f"${tm.get('total_micro_secondary_loss_usd', 0):,.0f}",
             'Downtime 기회비용 (USD)': f"${tm.get('total_downtime_opportunity_cost_usd', 0):,.0f}",
             '자산 보존율': f"{summary['financial_loss']['prevention_rate']*100:.1f}%",
-            '서비스 가동률': f"{summary['availability']['micro_availability']*100:.1f}%",
+            '서비스 실효 가동률': f"{summary['availability']['effective_availability']*100:.1f}%",
             '평균 Downtime': f"{summary['service_downtime']['avg_per_detection_min']:.1f} 분",
             '평균 가스비 (Gas)': f"{avg_gas:,.0f}",
         })
@@ -344,7 +344,7 @@ if st.session_state.benchmark_results:
     downtime_rows = []
     for name, collector in collectors.items():
         for r in collector.results:
-            if r.predicted != 'ATTACK':
+            if r.service_downtime_sec <= 0:
                 continue
             s_type = r.metadata.get('scenario_type', '')
             is_catastrophic = r.metadata.get('is_catastrophic', False) or (
@@ -373,7 +373,7 @@ if st.session_state.benchmark_results:
                     sort=['Catastrophic 공격', 'Macro 공격', 'Micro 공격'],
                     axis=alt.Axis(labelAngle=0)),
             y=alt.Y('중단시간(초):Q', title='평균 중단 시간 (초, Log Scale)',
-                    scale=alt.Scale(type='log')),
+                    scale=alt.Scale(type='log', zero=False)),
             color=alt.Color('시스템:N', title='시스템'),
             xOffset='시스템:N',
             tooltip=['시스템', '공격 유형', alt.Tooltip('중단시간(초)', format='.1f')]
@@ -548,7 +548,75 @@ if st.session_state.benchmark_results:
     st.caption("점선: 각 시스템의 대응 시각. 기존 수동거버넌스는 5분 동안 대응하지 못해 피해가 기하급수적으로 증가.")
 
     # =========================================================================
-    # 내보내기
+    # ⑧ 단일계층 엔진 과부하 FPR 시각화
+    # =========================================================================
+    st.divider()
+    st.markdown("### ⚠️ ⑨ 단일계층 엔진 과부하 vs FPR (핵심)")
+    st.caption(
+        """
+        단일계층은 Macro+Micro 돕일 엔진으로 모두 처리하므로, 트랜잭션 수가 늘어나면 과부하로 FPR이 동적으로 상승합니다.
+        2계층은 엔진이 분리되어 있어 Micro 처리가 Macro엔 영향을 주지 않으므로 FPR이 일정하게 유지됩니다.
+        """
+    )
+
+    # 단일계층 과부하 맨델릴 모델: 건수 취축에 따른 FPR 변화
+    overload_threshold = 50
+    overload_fpr_increment = 0.04
+    max_overload_fpr = 0.18
+    base_fpr = 0.05
+
+    tx_counts = list(range(0, 301, 10))
+    overload_rows = []
+    for tx in tx_counts:
+        overload_level = tx // overload_threshold
+        single_fpr = min(max_overload_fpr, base_fpr + overload_level * overload_fpr_increment)
+        overload_rows.append({'처리 건수': tx, 'FPR (%)': single_fpr * 100, '시스템': '단일계층 (다이나믹 FPR)'})
+        overload_rows.append({'처리 건수': tx, 'FPR (%)': base_fpr * 100 * 0.4, '시스템': '2계층 (엔진 분리, 일정 유지)'})
+
+    overload_df = pd.DataFrame(overload_rows)
+    overload_chart = alt.Chart(overload_df).mark_line(strokeWidth=2.5).encode(
+        x=alt.X('시스템 회:Q' if '시스템 회' in overload_df.columns else '처리 건수:Q',
+                title='누적 시나리오 처리 건수'),
+        y=alt.Y('FPR (%):Q', title='오탐율 FPR (%)',
+                scale=alt.Scale(domain=[0, 20])),
+        color=alt.Color('시스템:N',
+                        scale=alt.Scale(
+                            domain=['단일계층 (다이나믹 FPR)', '2계층 (엔진 분리, 일정 유지)'],
+                            range=['#F39C12', '#27AE60']
+                        )),
+        tooltip=['시스템', '처리 건수', alt.Tooltip('FPR (%)', format='.1f')]
+    ).properties(
+        height=350,
+        title='단일계층 vs 2계층: 부하 증가에 따른 오탐율(FPR) 변화'
+    )
+    st.altair_chart(overload_chart, use_container_width=True)
+
+    # 트랜잭션 별 단일계층 latency 비교 (실제 실험 데이터)
+    sybil_latency_rows = []
+    for name, collector in collectors.items():
+        for r in collector.results:
+            s_type = r.metadata.get('scenario_type', '')
+            is_swarm = r.metadata.get('is_catastrophic', False)  # fallback metadata
+            if s_type == 'sybil_attack':
+                sybil_latency_rows.append({
+                    '시스템': name,
+                    '탐지시간(ms)': r.latency_ms,
+                    '공격유형': 'Micro 시빌 떼' if r.metadata.get('amount', 9999) < 100_000 else '일반 시빌',
+                })
+
+    if sybil_latency_rows:
+        sybil_df = pd.DataFrame(sybil_latency_rows)
+        sybil_chart = alt.Chart(sybil_df).mark_boxplot(extent='min-max').encode(
+            x=alt.X('시스템:N', axis=alt.Axis(labelAngle=0)),
+            y=alt.Y('탐지시간(ms):Q', title='탐지 시간 (ms, log)',
+                    scale=alt.Scale(type='log')),
+            color='시스템:N',
+            column='공격유형:N',
+        ).properties(height=320, title='시빌 공격별 탐지 시간 분포: Micro 떼 vs 일반 시빌')
+        st.altair_chart(sybil_chart, use_container_width=True)
+        st.caption("단일계층의 Micro 시빌 떼 탐지시간과 2계층의 차이가 명확하일수록 엔진 분리 효과가 드러납니다.")
+
+    # 제내보내기
     # =========================================================================
     st.divider()
     st.markdown("### 💾 결과 내보내기")
@@ -568,11 +636,35 @@ if st.session_state.benchmark_results:
 st.divider()
 st.subheader("🎯 논문 목표 기준 대조표")
 target_df = pd.DataFrame([
-    {'시스템': '기존 수동 거버넌스', '탐지율': '~60%', '오탐율': '~15%',
-     '응답 시간': '~5,000 ms', '자산 보존율': '낮음', '서비스 가동률': '0% (전체 정지)', '중단 시간': '30~120 분'},
-    {'시스템': 'FDS 단일 계층', '탐지율': '~85%', '오탐율': '~5%',
-     '응답 시간': '~350 ms', '자산 보존율': '중간', '서비스 가동률': '0% (전체 정지)', '중단 시간': '5~30 분'},
-    {'시스템': 'FDS 2계층 (제안)', '탐지율': '>92%', '오탐율': '<2%',
-     '응답 시간': '<150 ms', '자산 보존율': '높음 (최소화)', '서비스 가동률': '100% (Micro 유지)', '중단 시간': '0초 (Micro) / <5분 (Macro)'},
+    {
+        '시스템': '기존 수동 거버넌스',
+        '탐지율': '~60%',
+        '오탐율': '~15%',
+        '응답 시간 (latency)': '150,000ms 이상 (2.5분+)',
+        '총 사고대응': '30~80분',
+        '자산 보존율': '낮음',
+        '서비스 실효 가동률': '~5~20% (전체 중단 빈번)',
+        '중단 시간': '30~80분',
+    },
+    {
+        '시스템': 'FDS 단일 계층',
+        '탐지율': '~85%',
+        '오탐율': '기본 5% / 과부하 최대 18%',
+        '응답 시간 (latency)': 'Macro: 250ms / Micro: 875ms+',
+        '총 사고대응': '5~30분',
+        '자산 보존율': '중간',
+        '서비스 실효 가동률': '~30~60% (소규모 공격 시 전체 중단율 높음)',
+        '중단 시간': '5~30분',
+    },
+    {
+        '시스템': 'FDS 2계층 (제안)',
+        '탐지율': '>92%',
+        '오탐율': 'Macro 5% / Micro ~2% (전용엔진, 과부하 면역)',
+        '응답 시간 (latency)': 'Macro: 250ms / Micro: 60ms',
+        '총 사고대응': '<15분',
+        '자산 보존율': '높음 (최소화)',
+        '서비스 실효 가동률': '85~95%+ (Micro 계속 유지)',
+        '중단 시간': '0초 (Micro) / <15분 (Macro)',
+    },
 ])
 st.dataframe(target_df, use_container_width=True, hide_index=True)

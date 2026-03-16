@@ -394,6 +394,21 @@ class MetricsCollector:
         available_count = sum(1 for r in self.results if r.micro_available)
         return available_count / len(self.results)
     
+    def calculate_effective_availability(self) -> float:
+        """
+        시간 기반 실효 서비스 가용률.
+        각 시나리오를 30초 처리 슬롯으로 가정.
+        총 다운타임 / 총 시뮬레이션 시간으로 산출.
+        """
+        total_scenarios = len(self.results)
+        if total_scenarios == 0:
+            return 1.0
+        total_sim_sec = total_scenarios * 30.0
+        total_downtime = sum(r.service_downtime_sec for r in self.results)
+        # 과도한 downtime은 total_sim_sec에 cap
+        availability = max(0.0, 1.0 - min(total_downtime, total_sim_sec) / total_sim_sec)
+        return availability
+    
     def calculate_full_network_freeze_count(self) -> int:
         """전체 네트워크 동결 횟수"""
         return sum(1 for r in self.results if r.freeze_scope == 'full_network')
@@ -504,6 +519,7 @@ class MetricsCollector:
             },
             'availability': {
                 'micro_availability': round(self.calculate_micro_availability(), 4),
+                'effective_availability': round(self.calculate_effective_availability(), 4),
                 'full_network_freezes': self.calculate_full_network_freeze_count(),
                 'selective_freezes': self.calculate_selective_freeze_count(),
                 'freeze_scope_distribution': self.get_freeze_scope_distribution(),

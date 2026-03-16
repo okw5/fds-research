@@ -280,7 +280,7 @@ class DetectionConfig:
         FDS 2계층 설정 — Macro/Micro 엔진 완전 분리
 
         [Macro 엔진 — 대형 공격 전담]
-        - 사전 서명 검증 포함: 80~160ms (평균 120ms)
+        - 사전 서명 검증 포함: 단일계층과 동일 수준으로 설정
         - 대형 Macro 공격 시 단일계층과 유사한 속도
 
         [Micro 엔진 — 소규모 공격 전담, 독립 실행]
@@ -294,8 +294,8 @@ class DetectionConfig:
         """
         return {
             # Macro 엔진 파라미터 (사전 서명 검증 포함)
-            'macro_base_latency_ms': 120,
-            'macro_latency_variance_ms': 40,
+            'macro_base_latency_ms': 250,
+            'macro_latency_variance_ms': 100,
             # Micro 엔진 파라미터 (경량, 독립)
             'micro_base_latency_ms': 60,
             'micro_latency_variance_ms': 20,
