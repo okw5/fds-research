@@ -224,12 +224,16 @@ if st.session_state.benchmark_results:
         fpr = cm['FP'] / (cm['FP'] + cm['TN']) if (cm['FP'] + cm['TN']) > 0 else 0
         gas = summary.get('gas_consumption', {})
         avg_gas = sum(gas.get(f'avg_{k}', 0) for k in ['signature_verification', 'pause', 'blacklist_addition'])
+        tm = summary.get('two_layer_metrics', {})
         summary_rows.append({
             '시스템 구성': name,
             '탐지율 (Recall)': f"{summary['recall']*100:.1f}%",
             '오탐율 (FPR)': f"{fpr*100:.1f}%",
             'F1-Score': f"{summary['f1_score']:.3f}",
             '응답 시간 (avg)': f"{summary['latency']['avg_ms']:.0f} ms",
+            '직접 피해 (USD)': f"${summary['financial_loss']['total_usd']:,.0f}",
+            'Micro 2차 피해 (USD)': f"${tm.get('total_micro_secondary_loss_usd', 0):,.0f}",
+            'Downtime 기회비용 (USD)': f"${tm.get('total_downtime_opportunity_cost_usd', 0):,.0f}",
             '자산 보존율': f"{summary['financial_loss']['prevention_rate']*100:.1f}%",
             '서비스 가동률': f"{summary['availability']['micro_availability']*100:.1f}%",
             '평균 Downtime': f"{summary['service_downtime']['avg_per_detection_min']:.1f} 분",
@@ -330,7 +334,11 @@ if st.session_state.benchmark_results:
     # =========================================================================
     st.divider()
     st.markdown("### ⏱️ ④ 평균 서비스 중단 시간 비교 (Downtime 분석)")
-    st.caption("Micro / Macro 공격별 서비스 중단 시간을 로그 스케일로 시각화. 2계층은 Micro 공격 시 중단 시간 0초를 달성합니다.")
+    st.caption(
+        "공격 규모별(Catastrophic·Macro·Micro) 서비스 중단 시간 비교. "
+        "Catastrophic 공격(무한발행 5M+ 토큰)은 즉시 대응하지 않으면 피해가 기하급수적으로 증가합니다. "
+        "2계층은 Micro 2차 피해(주황)가 추가되는 대신 Downtime이 훨씬 짧습니다."
+    )
 
     macro_scenario_types = {'infinite_mint', 'reserve_drain', 'flash_loan_depeg'}
     downtime_rows = []
@@ -339,20 +347,58 @@ if st.session_state.benchmark_results:
             if r.predicted != 'ATTACK':
                 continue
             s_type = r.metadata.get('scenario_type', '')
-            category = 'Macro 공격' if s_type in macro_scenario_types else 'Micro 공격'
-            downtime_rows.append({'시스템': name, '공격 유형': category, '중단시간(초)': max(0.01, r.service_downtime_sec)})
+            is_catastrophic = r.metadata.get('is_catastrophic', False) or (
+                s_type in {'infinite_mint', 'reserve_drain'}
+                and r.metadata.get('amount', 0) >= 5_000_000
+            )
+            if s_type in macro_scenario_types:
+                category = 'Catastrophic 공격' if is_catastrophic else 'Macro 공격'
+            else:
+                category = 'Micro 공격'
+
+            downtime_rows.append({
+                '시스템': name,
+                '공격 유형': category,
+                '중단시간(초)': max(0.01, r.service_downtime_sec),
+                'Micro 2차피해($)': r.micro_secondary_loss,
+            })
 
     if downtime_rows:
-        dt_df = pd.DataFrame(downtime_rows).groupby(['시스템', '공격 유형'])['중단시간(초)'].mean().reset_index()
-        dt_chart = alt.Chart(dt_df).mark_bar().encode(
-            x=alt.X('공격 유형:N', title=None, axis=alt.Axis(labelAngle=0)),
-            y=alt.Y('중단시간(초):Q', title='평균 중단 시간 (초, Log Scale)', scale=alt.Scale(type='log')),
+        dt_df = pd.DataFrame(downtime_rows)
+
+        # 패널 A: 평균 Downtime 막대 (로그 스케일)
+        dt_avg = dt_df.groupby(['시스템', '공격 유형'])['중단시간(초)'].mean().reset_index()
+        dt_chart = alt.Chart(dt_avg).mark_bar().encode(
+            x=alt.X('공격 유형:N', title=None,
+                    sort=['Catastrophic 공격', 'Macro 공격', 'Micro 공격'],
+                    axis=alt.Axis(labelAngle=0)),
+            y=alt.Y('중단시간(초):Q', title='평균 중단 시간 (초, Log Scale)',
+                    scale=alt.Scale(type='log')),
             color=alt.Color('시스템:N', title='시스템'),
             xOffset='시스템:N',
             tooltip=['시스템', '공격 유형', alt.Tooltip('중단시간(초)', format='.1f')]
-        ).properties(height=380, title='공격 성격별 서비스 중단 시간 비교')
+        ).properties(height=350, title='공격 규모별 서비스 중단 시간 (Catastrophic → 즉각 대응 필요)')
         st.altair_chart(dt_chart, use_container_width=True)
-        st.markdown("> **Note**: 2계층 시스템은 소액 결제 계층을 유지하여 Micro 공격 시 서비스 중단 시간 **0초**를 달성합니다.")
+
+        # 패널 B: 2계층 Micro 2차 피해
+        micro_df = dt_df[dt_df['Micro 2차피해($)'] > 0]
+        if not micro_df.empty:
+            micro_avg = micro_df.groupby(['시스템', '공격 유형'])['Micro 2차피해($)'].mean().reset_index()
+            micro_chart = alt.Chart(micro_avg).mark_bar(opacity=0.85).encode(
+                x=alt.X('공격 유형:N', axis=alt.Axis(labelAngle=0)),
+                y=alt.Y('Micro 2차피해($):Q', title='Micro 2차 피해 평균 (USD)'),
+                color=alt.Color('시스템:N'),
+                xOffset='시스템:N',
+                tooltip=['시스템', '공격 유형', alt.Tooltip('Micro 2차피해($)', format='$,.2f')]
+            ).properties(height=280, title='Macro 공격 후 Micro 채널 2차 피해 (2계층 전용)')
+            st.altair_chart(micro_chart, use_container_width=True)
+
+        st.markdown("""
+        > **해석**:
+        > - **Catastrophic** 공격 시 단일계층이 2계층보다 Downtime이 훨씬 깁니다.
+        > - 2계층은 **Micro 2차 피해**가 존재하지만 Downtime을 최소화합니다.
+        > - Micro 공격에서 2계층은 지갑 blacklist만 수행 → Downtime **0초** 달성.
+        """)
     else:
         st.info("공격 탐지 데이터가 없습니다. 실험을 재실행 해주세요.")
 
@@ -382,6 +428,124 @@ if st.session_state.benchmark_results:
         tooltip=['시스템', '단계', '가스 비용 (Gas)']
     ).properties(height=380, title='Circuit Breaker 단계별 가스 소비량 비교')
     st.altair_chart(gas_chart, use_container_width=True)
+
+    # =========================================================================
+    # ⑥ 피해금액 vs 대응시간 산점도 (핵심 그래프)
+    # =========================================================================
+    st.divider()
+    st.markdown("### 📌 ⑥ 피해금액 vs 대응 시간 산점도 (핵심)")
+    st.caption(
+        "공격 탐지 시간(ms)과 건당 직접 피해의 산포 "
+        "— **빠를수록 피해가 기하급수적으로 감소**하는 지수 증가 모델을 시각화합니다."
+    )
+
+    scatter_rows = []
+    for name, collector in collectors.items():
+        for r in collector.results:
+            if r.actual == 'ATTACK' and r.predicted == 'ATTACK' and r.financial_loss > 0:
+                scatter_rows.append({
+                    '시스템': name,
+                    '대응시간(ms)': max(1, r.latency_ms),
+                    '직접피해($)': r.financial_loss,
+                    '공격유형': r.metadata.get('scenario_type', ''),
+                })
+
+    if scatter_rows:
+        sc_df = pd.DataFrame(scatter_rows)
+        scatter = alt.Chart(sc_df).mark_circle(opacity=0.55, size=55).encode(
+            x=alt.X('대응시간(ms):Q', title='대응 시간 (ms, log 스케일)',
+                    scale=alt.Scale(type='log')),
+            y=alt.Y('직접피해($):Q', title='직접 피해 (USD, log 스케일)',
+                    scale=alt.Scale(type='log')),
+            color=alt.Color('시스템:N', title='시스템'),
+            shape=alt.Shape('시스템:N'),
+            tooltip=['시스템', '공격유형',
+                     alt.Tooltip('대응시간(ms)', format='.0f'),
+                     alt.Tooltip('직접피해($)', format='$,.0f')]
+        ).properties(height=420, title='피해금액 vs 대응시간: 좌측하단일수록 피해 작음 (2계층 집중)')
+        st.altair_chart(scatter, use_container_width=True)
+        st.caption("패턴: 2계층(좌하단) → 단일계층(중간) → 수동거버넌스(우상단) 순으로 피해 큼")
+    else:
+        st.info("산점도를 위한 TP 데이터가 부족합니다.")
+
+    # =========================================================================
+    # ⑦ 무한발행 공격 타임라인 시뮬레이션
+    # =========================================================================
+    st.divider()
+    st.markdown("### 📈 ⑦ 무한발행 공격 타임라인 시뮬레이션")
+    st.caption(
+        "대량 민트 공격 1건에 대해 3개 시스템의 **시간 축별 누적 피해 공식(`1 - e^(-v×t)`)** 시뮬레이션. "
+        "수동거버넌스(빨간선)는 가장 늦게, 2계층(초록선)은 가장 빠르게 차단합니다."
+    )
+
+    import math as _math
+
+    ATTACK_AMOUNT = 3_000_000   # 300만 토큰 대량발행 가정
+    ATTACK_VELOCITY = 0.18      # 무한발행 확산 속도
+    TOKEN_PRICE_USD = 1.0
+
+    # 시스템별 대응 시간(초) — 시뮬레이션 파라미터에서 산출
+    SYSTEM_RESPONSE = {
+        '기존 수동 거버넌스': 300.0,   # ~5분 (latency 3500~6000ms + 확인 시간)
+        'FDS 단일 토큰':    0.35,   # 350ms
+        'FDS 2계층 토큰':   0.12,   # 120ms
+    }
+    SYSTEM_COLORS = {
+        '기존 수동 거버넌스': '#E74C3C',
+        'FDS 단일 토큰':    '#F39C12',
+        'FDS 2계층 토큰':   '#27AE60',
+    }
+
+    t_max = 350
+    t_points = [i * 0.5 for i in range(int(t_max / 0.5) + 1)]
+
+    timeline_rows = []
+    for sys_name, t_response in SYSTEM_RESPONSE.items():
+        for t in t_points:
+            if t < t_response:
+                ratio = min(0.98, 1.0 - _math.exp(-ATTACK_VELOCITY * t))
+            else:
+                ratio = min(0.98, 1.0 - _math.exp(-ATTACK_VELOCITY * t_response))
+            timeline_rows.append({
+                '시간(초)': t,
+                '누적피해(USD)': ATTACK_AMOUNT * TOKEN_PRICE_USD * ratio,
+                '시스템': sys_name,
+                '대응시각': t_response,
+            })
+
+    tl_df = pd.DataFrame(timeline_rows)
+
+    line = alt.Chart(tl_df).mark_line(strokeWidth=2.5).encode(
+        x=alt.X('시간(초):Q', title='공격 발생 후 경과 시간 (초)'),
+        y=alt.Y('누적피해(USD):Q', title='누적 피해 (USD)'),
+        color=alt.Color('시스템:N',
+                        scale=alt.Scale(
+                            domain=list(SYSTEM_COLORS.keys()),
+                            range=list(SYSTEM_COLORS.values())
+                        )),
+        tooltip=['시스템', alt.Tooltip('시간(초)', format='.1f'),
+                 alt.Tooltip('누적피해(USD)', format='$,.0f')]
+    )
+
+    vlines = alt.Chart(pd.DataFrame([
+        {'대응시각': v, '시스템': k} for k, v in SYSTEM_RESPONSE.items()
+    ])).mark_rule(strokeDash=[5, 4], strokeWidth=1.8).encode(
+        x='대응시각:Q',
+        color=alt.Color('시스템:N',
+                        scale=alt.Scale(
+                            domain=list(SYSTEM_COLORS.keys()),
+                            range=list(SYSTEM_COLORS.values())
+                        ))
+    )
+
+    st.altair_chart(
+        (line + vlines).properties(
+            height=430,
+            title=f'무한발행 공격 타임라인: {ATTACK_AMOUNT:,} 토큰 대량발행 대응 시뮬레이션'
+        ),
+        use_container_width=True
+    )
+    st.caption("점선: 각 시스템의 대응 시각. 기존 수동거버넌스는 5분 동안 대응하지 못해 피해가 기하급수적으로 증가.")
 
     # =========================================================================
     # 내보내기

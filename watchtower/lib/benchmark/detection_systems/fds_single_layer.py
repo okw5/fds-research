@@ -41,54 +41,84 @@ class FDSSingleLayerSystem(DetectionSystem):
     - 단일 토큰이므로 소액/거액 구분 없이 전체 정지
     """
     
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config=None):
         default_config = DetectionConfig.get_fds_single_layer_config()
         if config:
             default_config.update(config)
         super().__init__("FDS 단일 토큰", default_config)
+        # 엔진 과부하 상태 추적
+        self._tx_count = 0          # 처리한 트랜잭션 누적 수
+        self._overload_level = 0    # 과부하 단계 (0 = 정상)
+        self._current_fpr = default_config.get('false_positive_rate', 0.05)
     
     def detect(self, scenario: Scenario) -> Tuple[str, float]:
         """
-        FDS 단일 토큰 탐지
-        
-        Returns:
-            Tuple[str, float]: (예측 결과, 탐지 지연시간 ms)
+        FDS 단일계층 탐지 — 동일 엔진으로 Macro+Micro 모두 처리
+
+        [Macro 공격] 250~450ms: 2계층 Macro 엔진과 동일 속도
+        [Micro 공격] 875~1575ms: 임계값 미달 → 누적 패턴 탐지 필요 (3.5배 지연)
+        [과부하 시]  +1.8배 추가: 단일 엔진 처리 한계 초과
         """
-        # 1. 기본 지연 시간
-        base_latency = self.config['base_latency_ms']
-        variance = self.config['latency_variance_ms']
+        cfg = self.config
+        self._tx_count += 1
+
+        # 과부하 단계 업데이트
+        overload_threshold = cfg['overload_threshold_tx']
+        self._overload_level = self._tx_count // overload_threshold
+        # FPR 동적 상승 (과부하 단계당 +4%, 최대 18%)
+        self._current_fpr = min(
+            cfg['max_overload_fpr'],
+            0.05 + self._overload_level * cfg['overload_fpr_increment']
+        )
+
+        # 기본 지연 시간
+        base_latency = cfg['base_latency_ms']
+        variance = cfg['latency_variance_ms']
         latency_ms = base_latency + random.uniform(-variance, variance)
-        
-        # 네트워크 혼잡도에 따른 지연
+
+        # Micro 공격(시빌·임계회피)은 개별 건이 임계값 미달
+        # → 누적 패턴 감지를 위한 윈도우 분석 필요 → 3.5배 추가 지연
+        is_micro_attack = scenario.scenario_type in {
+            ScenarioType.SYBIL_ATTACK,
+            ScenarioType.THRESHOLD_EVASION,
+        } or scenario.parameters.get('is_micro_swarm', False)
+
+        if is_micro_attack:
+            latency_ms *= cfg['micro_detection_delay_multiplier']
+
+        # 엔진 과부하 시 추가 지연
+        if self._overload_level > 0:
+            latency_ms *= cfg['overload_latency_multiplier']
+
+        # 네트워크 혼잡도 적용
         if scenario.network_condition == 'congested':
-            latency_ms *= self.config['congestion_multiplier']
+            latency_ms *= cfg['congestion_multiplier']
         elif scenario.network_condition == 'severe':
-            latency_ms *= self.config['congestion_multiplier'] * 1.5
-        
-        # 2. 탐지 알고리즘 실행
+            latency_ms *= cfg['congestion_multiplier'] * 1.5
+
+        # 탐지 알고리즘 실행
         prediction = self._run_detection_algorithms(scenario)
-        
+
         self._record_detection(latency_ms)
         return (prediction, latency_ms)
     
     def detect_extended(self, scenario: Scenario) -> DetectionResponse:
         """
         확장된 탐지 결과 (피해금액 + 서비스 중단 시간 포함)
-        
-        FDS 단일 토큰의 특징:
-        - 자동으로 빠르게 탐지하나, 방어 시 전체 토큰 일시정지 (Pause)
-        - 단일 토큰이므로 소액결제도 함께 중단
-        - 자동 분석 후 수동 복구 필요 → 5~30분 소요
+
+        단일계층 핵심 한계:
+        - Macro+Micro 동일 엔진 → 과부하 시 latency 상승 + FPR 증가
+        - Micro 공격 탐지 지연 → 피해 누적 후 탐지
+        - 탐지 시 전체 pause → 소액결제 포함 모든 서비스 중단
         """
         prediction, latency_ms = self.detect(scenario)
         detected_as_attack = (prediction == 'ATTACK')
-        
-        # 피해금액 계산
+
+        # 피해금액: 과부하로 지연된 latency → 피해 증가
         financial_loss = self._estimate_financial_loss(
             scenario, latency_ms, detected_as_attack
         )
-        
-        # 서비스 중단 시간 계산
+
         service_downtime_sec = 0.0
         micro_available = True
         freeze_scope = 'none'
@@ -98,34 +128,35 @@ class FDSSingleLayerSystem(DetectionSystem):
             amount = scenario.parameters.get('amount',
                      scenario.parameters.get('total_amount', 0))
 
-            # 대규모 Macro 공격 → 더 긴 전체 중단
             is_large_scale = scenario.scenario_type in {
                 ScenarioType.INFINITE_MINT,
                 ScenarioType.RESERVE_DRAIN,
                 ScenarioType.FLASH_LOAN_DEPEG,
-                ScenarioType.SYBIL_ATTACK,
             }
+
             if is_large_scale and amount >= 5_000_000:
-                # 대규모: 30분~2시간 전체 중단
+                # Catastrophic: 30분~2시간 전체 중단 (2계층과 동일 수준)
                 service_downtime_sec = random.uniform(1800, 7200)
             elif is_large_scale:
                 # 일반 Macro: 10~30분 전체 중단
                 service_downtime_sec = random.uniform(600, 1800)
+            elif scenario.parameters.get('is_micro_swarm', False):
+                # Micro 시빌 떼: 단일 엔진이 모두 차단 → 5~15분
+                service_downtime_sec = random.uniform(300, 900)
             else:
-                # Micro급 (임계값 회피 등): 5~30분
-                service_downtime_sec = random.uniform(300, 1800)
+                # 소규모 Micro(임계회피 등): 5~20분
+                service_downtime_sec = random.uniform(300, 1200)
 
-            # 네트워크 혼잡 시 추가 지연
+            # 혼잡도 적용
             if scenario.network_condition == 'congested':
                 service_downtime_sec *= 1.3
             elif scenario.network_condition == 'severe':
                 service_downtime_sec *= 1.5
 
-            micro_available = False  # ★ 핵심: 소액결제도 전부 중단
+            micro_available = False  # ★ 소액결제도 전부 중단
             freeze_scope = 'full_network'
             response_action = 'pause_all'
 
-        
         # 가스 소비량 (표준 자동화)
         gas_details = {}
         if detected_as_attack:
@@ -139,7 +170,12 @@ class FDSSingleLayerSystem(DetectionSystem):
             prediction=prediction,
             latency_ms=latency_ms,
             financial_loss=financial_loss,
+            micro_secondary_loss=0.0,
+            leaked_tokens=0.0,
             service_downtime_sec=service_downtime_sec,
+            downtime_opportunity_cost=self._estimate_downtime_opportunity_cost(
+                service_downtime_sec
+            ),
             micro_available=micro_available,
             freeze_scope=freeze_scope,
             response_action=response_action,

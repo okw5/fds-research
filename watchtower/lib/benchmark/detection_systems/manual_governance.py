@@ -50,67 +50,96 @@ class ManualGovernanceSystem(DetectionSystem):
     
     def detect(self, scenario: Scenario) -> Tuple[str, float]:
         """
-        수동 거버넌스 탐지 시뮬레이션
-        
-        Returns:
-            Tuple[str, float]: (예측 결과, 탐지 지연시간 ms)
+        수동 거버넌스 탐지 시뮬레이션 — 4단계 인간 워크플로우
+
+        ① 알림 수신·확인 (30~120s): 담당자가 알림 인지
+        ② 상황 판단·승인 (120~600s): 심각도 평가, 대응 결정
+           → 복잡한 공격(시빌·플래시론)은 difficulty 배수로 추가 지연
+        latency_ms = (①+②) × 1000
         """
-        # 1. 반응 시간 시뮬레이션
-        latency_ms = random.uniform(
-            self.config['response_delay_min_ms'],
-            self.config['response_delay_max_ms']
+        cfg = self.config
+
+        # ① 알림 수신~확인
+        alert_sec = random.uniform(
+            cfg['alert_notice_min_sec'], cfg['alert_notice_max_sec']
         )
-        
-        # 네트워크 혼잡 시 추가 지연 (담당자가 상황 파악하는 데 시간 소요)
+
+        # ② 상황 판단·승인 — 공격 유형 복잡도 반영
+        # 단순(무한발행·준비금탈취): 1.0× / 복잡(시빌·플래시론): 1.5× / 위장형: 2.0×
+        complexity_multiplier = {
+            ScenarioType.INFINITE_MINT:    1.0,
+            ScenarioType.RESERVE_DRAIN:    1.1,
+            ScenarioType.FLASH_LOAN_DEPEG: 1.5,
+            ScenarioType.SYBIL_ATTACK:     1.8,  # 분산 공격 → 판단 어려움
+            ScenarioType.THRESHOLD_EVASION: 2.0,  # 소액 위장 → 탐지 가장 어려움
+        }.get(scenario.scenario_type, 1.0)
+
+        assess_sec = random.uniform(
+            cfg['situation_assess_min_sec'], cfg['situation_assess_max_sec']
+        ) * complexity_multiplier
+
+        # 네트워크 혼잡 시 추가 지연
+        cong_mult = 1.0
         if scenario.network_condition == 'congested':
-            latency_ms *= 1.3
+            cong_mult = 1.3
         elif scenario.network_condition == 'severe':
-            latency_ms *= 1.8
-        
-        # 2. 탐지 정확도 시뮬레이션
+            cong_mult = 1.8
+
+        latency_ms = (alert_sec + assess_sec) * 1000.0 * cong_mult
+
+        # 탐지 정확도
         prediction = self._simulate_human_detection(scenario)
-        
+
         self._record_detection(latency_ms)
         return (prediction, latency_ms)
     
     def detect_extended(self, scenario: Scenario) -> DetectionResponse:
         """
         확장된 탐지 결과 (피해금액 + 서비스 중단 시간 포함)
-        
-        수동 거버넌스의 특징:
-        - 탐지 시 전체 네트워크 긴급 정지 (Emergency Pause)
-        - 조사 + 복구에 30~120분 소요
-        - 소액결제도 전부 중단
-        - 느린 반응으로 피해금액 큼
+
+        수동 거버넌스 전체 타임라인:
+        ─────────────────────────────────────────────────────────────
+        ① 알림 수신 (30~120s)   ┐
+        ② 상황 판단 (2~12min)   ┘ → latency_ms (탐지까지)
+        ③ 컨트랙트 pause (1~5min)  ┐
+        ④ 조사·복구 (15~60min)     ┘ → service_downtime_sec
+        ─────────────────────────────────────────────────────────────
+        총 사고 대응 시간: latency/60 + downtime/60 = 약 30~80분
         """
         prediction, latency_ms = self.detect(scenario)
         detected_as_attack = (prediction == 'ATTACK')
-        
-        # 피해금액 계산
+
+        # 피해금액 (긴 latency → 지수 모델에서 피해 최대)
         financial_loss = self._estimate_financial_loss(
             scenario, latency_ms, detected_as_attack
         )
-        
-        # 서비스 중단 시간 계산
+
         service_downtime_sec = 0.0
         micro_available = True
         freeze_scope = 'none'
         response_action = 'none'
-        
+
         if detected_as_attack:
-            # 수동 거버넌스: 공격 탐지 시 전체 네트워크 긴급 정지
-            # 조사에 30~120분(1800~7200초) 소요
-            service_downtime_sec = random.uniform(1800, 7200)  # 30분~2시간
-            
-            # 네트워크 혼잡 시 복구 시간 추가
+            cfg = self.config
+            # ③ 컨트랙트 pause 실행 시간
+            pause_sec = random.uniform(
+                cfg['contract_pause_min_sec'], cfg['contract_pause_max_sec']
+            )
+            # ④ 조사·복구 시간
+            recovery_sec = random.uniform(
+                cfg['recovery_min_sec'], cfg['recovery_max_sec']
+            )
+            service_downtime_sec = pause_sec + recovery_sec
+
+            # 네트워크 혼잡 → 복구 추가 지연
             if scenario.network_condition == 'congested':
                 service_downtime_sec *= 1.3
             elif scenario.network_condition == 'severe':
                 service_downtime_sec *= 1.8
-            
-            micro_available = False  # 소액결제도 전부 중단
-            freeze_scope = 'full_network'  # 전체 네트워크 동결
-            response_action = 'pause_all'  # 전체 정지
+
+            micro_available = False
+            freeze_scope = 'full_network'
+            response_action = 'pause_all'
         
         # 가스 소비량 (수동 대응 오버헤드)
         gas_details = {}
@@ -125,7 +154,12 @@ class ManualGovernanceSystem(DetectionSystem):
             prediction=prediction,
             latency_ms=latency_ms,
             financial_loss=financial_loss,
+            micro_secondary_loss=0.0,   # 수동거버넌스: 전체 pause → Micro 2차 피해 없음
+            leaked_tokens=0.0,
             service_downtime_sec=service_downtime_sec,
+            downtime_opportunity_cost=self._estimate_downtime_opportunity_cost(
+                service_downtime_sec
+            ),
             micro_available=micro_available,
             freeze_scope=freeze_scope,
             response_action=response_action,

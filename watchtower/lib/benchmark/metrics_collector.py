@@ -25,8 +25,11 @@ class DetectionResult:
     metadata: Dict[str, Any] = field(default_factory=dict)
     
     # 확장 지표
-    financial_loss: float = 0.0           # 피해금액 (USD)
+    financial_loss: float = 0.0           # 직접 피해금액 (USD)
+    micro_secondary_loss: float = 0.0     # Micro 채널 2차 피해 (2계층 전용)
+    leaked_tokens: float = 0.0            # Macro 탐지 전 누출된 위조 토큰
     service_downtime_sec: float = 0.0     # 서비스 중단 시간 (초)
+    downtime_opportunity_cost: float = 0.0 # Downtime 기회비용 (수동·단일계층)
     micro_available: bool = True          # 소액결제 가용 여부
     freeze_scope: str = 'none'            # 동결 범위
     response_action: str = 'none'         # 방어 조치
@@ -139,22 +142,30 @@ class MetricsCollector:
     
     def record_from_response(self, scenario, response):
         """DetectionResponse 객체에서 기록"""
-        self.record(
+        result = DetectionResult(
             scenario_id=scenario.id,
-            predicted=response.prediction,
+            predicted=response.prediction.upper(),
             actual=scenario.label.value,
             latency_ms=response.latency_ms,
             metadata={
                 'scenario_type': scenario.scenario_type.value,
-                'network_condition': scenario.network_condition
+                'network_condition': scenario.network_condition,
+                'amount': scenario.parameters.get(
+                    'amount', scenario.parameters.get(
+                        'total_amount', scenario.parameters.get('loan_amount', 0))),
+                'is_catastrophic': scenario.parameters.get('is_catastrophic', False),
             },
             financial_loss=response.financial_loss,
+            micro_secondary_loss=getattr(response, 'micro_secondary_loss', 0.0),
+            leaked_tokens=getattr(response, 'leaked_tokens', 0.0),
             service_downtime_sec=response.service_downtime_sec,
+            downtime_opportunity_cost=getattr(response, 'downtime_opportunity_cost', 0.0),
             micro_available=response.micro_available,
             freeze_scope=response.freeze_scope,
             response_action=response.response_action,
             gas_details=getattr(response, 'gas_details', {})
         )
+        self.results.append(result)
     
     # =========================================================================
     # 기본 카운트 메서드
@@ -440,6 +451,18 @@ class MetricsCollector:
             'FN': self.get_false_negatives()
         }
     
+    def calculate_total_micro_secondary_loss(self) -> float:
+        """2계층 Micro 채널 2차 피해 총합 (USD)"""
+        return sum(r.micro_secondary_loss for r in self.results)
+
+    def calculate_total_downtime_opportunity_cost(self) -> float:
+        """서비스 중단 기회비용 총합 (단일계층·수동거버넌스 전용, USD)"""
+        return sum(r.downtime_opportunity_cost for r in self.results)
+
+    def calculate_total_leaked_tokens(self) -> float:
+        """Macro 탐지 전 누출된 위조 토큰 총합"""
+        return sum(r.leaked_tokens for r in self.results)
+
     def get_summary(self) -> Dict[str, Any]:
         """모든 메트릭 요약 (확장 지표 포함)"""
         return {
@@ -463,6 +486,14 @@ class MetricsCollector:
                 'avg_per_attack_usd': round(self.calculate_avg_financial_loss(), 2),
                 'max_single_usd': round(self.calculate_max_financial_loss(), 2),
                 'prevention_rate': round(self.calculate_loss_prevention_rate(), 4)
+            },
+            # ★ 신규: Micro 2차 피해 및 Downtime 기회비용
+            'two_layer_metrics': {
+                'total_micro_secondary_loss_usd': round(
+                    self.calculate_total_micro_secondary_loss(), 2),
+                'total_leaked_tokens': round(self.calculate_total_leaked_tokens(), 2),
+                'total_downtime_opportunity_cost_usd': round(
+                    self.calculate_total_downtime_opportunity_cost(), 2),
             },
             'service_downtime': {
                 'total_sec': round(self.calculate_total_downtime(), 2),

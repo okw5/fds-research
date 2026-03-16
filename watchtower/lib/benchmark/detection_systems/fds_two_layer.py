@@ -54,52 +54,112 @@ class FDSTwoLayerSystem(DetectionSystem):
     
     def detect(self, scenario: Scenario) -> Tuple[str, float]:
         """
-        FDS 2계층 토큰 탐지
-        
-        Returns:
-            Tuple[str, float]: (예측 결과, 탐지 지연시간 ms)
+        FDS 2계층 탐지 — Macro/Micro 엔진 완전 분리
+
+        [Macro 엔진] - 대형 공격 전담
+          사전 서명 검증 포함: 80~160ms (평균 120ms)
+          단일계층 Macro 대응과 유사한 속도 (250~450ms 대비 약간 빠름)
+
+        [Micro 엔진] - 소규모 공격 전담, 독립 실행
+          경량 처리, 과부하 면역: 40~80ms (평균 60ms)
+          단일계층 Micro 대응(875~1575ms)보다 20배 이상 빠름
+
+        → 엔진이 분리되어 있으므로 Micro 처리가 Macro 탐지에 영향 없음
         """
-        # 1. 지연 시간 계산 (더 빠름)
-        base_latency = self.config['base_latency_ms']
-        variance = self.config['latency_variance_ms']
+        cfg = self.config
+        is_macro = self._is_macro_transaction(scenario)
+
+        if is_macro:
+            # Macro 엔진: 사전 서명 검증 포함 → 단일계층과 유사한 속도
+            base_latency = cfg['macro_base_latency_ms']
+            variance = cfg['macro_latency_variance_ms']
+        else:
+            # Micro 엔진: 경량 독립 처리 → 시빌·임계회피 공격 초고속 탐지
+            base_latency = cfg['micro_base_latency_ms']
+            variance = cfg['micro_latency_variance_ms']
+
         latency_ms = base_latency + random.uniform(-variance, variance)
-        
-        # 네트워크 혼잡에도 우선 처리로 영향 최소화
+
+        # 네트워크 혼잡에도 우선 처리로 영향 최소화 (과부하 면역)
         if scenario.network_condition == 'congested':
-            latency_ms *= self.config['congestion_multiplier']
+            latency_ms *= cfg['congestion_multiplier']
         elif scenario.network_condition == 'severe':
-            latency_ms *= self.config['congestion_multiplier'] * 1.2  # 영향 적음
-        
-        # 2. 탐지 알고리즘 실행
+            latency_ms *= cfg['congestion_multiplier'] * 1.2
+
+        # 탐지 알고리즘 실행
         prediction = self._run_two_layer_detection(scenario)
-        
+
         self._record_detection(latency_ms)
         return (prediction, latency_ms)
     
     def detect_extended(self, scenario: Scenario) -> DetectionResponse:
         """
-        확장된 탐지 결과 (피해금액 + 서비스 중단 시간 포함)
-        
+        확장된 탐지 결과 (피해금액 + 서비스 중단 시간 + Micro 2차 피해 포함)
+
         ★ FDS 2계층의 핵심 장점을 반영:
         - Macro만 선택적으로 정지 → 소액결제(Micro) 정상 운영 유지
-        - 빠른 탐지(120ms) → 피해금액 최소화
-        - 자동 복구 가능 → 서비스 중단 시간 최소
-        - 지갑 동결(freeze_wallet)로 정밀 대응
+        - 빠른 탐지(80~150ms) → 피해금액 최소화
+        - Macro pause 이후에도 이미 발행된 위조 토큰이 Micro망으로 유입
+          → micro_secondary_loss 로 2차 피해까지 추적
+
+        [시뮬레이션 흐름]
+        1. Macro 탐지 지연(latency_ms) 동안 위조 토큰 누출
+        2. Macro pause 발동: Macro 채널 차단
+        3. 이미 누출된 위조 토큰 → Micro 채널 유입 → 2차 피해 누적
+        4. Micro 이상 탐지 → 지갑 blacklist → 추가 피해 차단
         """
         prediction, latency_ms = self.detect(scenario)
         detected_as_attack = (prediction == 'ATTACK')
-        
+
         # Macro/Micro 구분
         is_macro = self._is_macro_transaction(scenario)
-        
-        # 피해금액 계산 (2계층은 더 작은 피해)
+
+        # ─── 직접 피해금액 계산 ─────────────────────────────────────────────
         financial_loss = self._estimate_financial_loss(
             scenario, latency_ms, detected_as_attack
         )
-        
-        # 서비스 중단 시간 계산 - 2계층의 핵심 차별점
+
+        # ─── Micro 2차 피해 계산 ────────────────────────────────────────────
+        micro_secondary_loss = 0.0
+        leaked_tokens = 0.0
+
+        if detected_as_attack and is_macro and scenario.is_attack():
+            attack_amount = float(scenario.parameters.get(
+                'amount', scenario.parameters.get(
+                    'total_amount', scenario.parameters.get('loan_amount', 0))))
+
+            is_catastrophic = (
+                scenario.scenario_type in {
+                    ScenarioType.INFINITE_MINT,
+                    ScenarioType.RESERVE_DRAIN,
+                } and attack_amount >= 5_000_000
+            ) or scenario.parameters.get('is_catastrophic', False)
+
+            # Step 1: 탐지 지연 동안 누출된 위조 토큰 양
+            #   누출률 = 공격 속도 × 탐지 지연(초)
+            latency_sec = latency_ms / 1000.0
+            s_type = scenario.scenario_type.value
+            velocity = self.ATTACK_VELOCITY.get(s_type, 0.05)
+            leak_ratio = min(0.30, velocity * latency_sec)
+            leaked_tokens = attack_amount * leak_ratio
+
+            # Step 2: 누출된 위조 토큰 중 Micro망 유입 비율
+            #   catastrophic: Micro망으로 30% 흘러듦 (대규모 → 차단 전 이미 유통)
+            #   일반 Macro:   Micro망으로 10% 흘러듦
+            micro_inflow_ratio = 0.30 if is_catastrophic else 0.10
+            micro_inflow_tokens = leaked_tokens * micro_inflow_ratio
+
+            # Step 3: Micro 이상 탐지 후 blacklist → 추가 10%만 최종 손실
+            micro_detection_ratio = 0.10  # blacklist 이후 빠져나가는 비율
+            token_price_usd = 1.0         # 토큰 단가 $1 가정
+
+            micro_secondary_loss = (
+                micro_inflow_tokens * micro_detection_ratio * token_price_usd
+            )
+
+        # ─── 서비스 중단 시간 ───────────────────────────────────────────────
         service_downtime_sec = 0.0
-        micro_available = True  # ★ 소액결제는 항상 유지
+        micro_available = True
         freeze_scope = 'none'
         response_action = 'none'
 
@@ -107,40 +167,38 @@ class FDSTwoLayerSystem(DetectionSystem):
             amount = scenario.parameters.get('amount',
                      scenario.parameters.get('total_amount', 0))
 
-            # ── Macro 공격 ──────────────────────────────────────────────────
+            # ── Macro 공격 ─────────────────────────────────────────────────
             if is_macro:
-                # 대규모 무한 발행 / 준비금 탈취 / 플래시론 → 규모에 따라 전체 중단
-                is_catastrophic = (
+                is_catastrophic_flag = (
                     scenario.scenario_type in {
                         ScenarioType.INFINITE_MINT,
                         ScenarioType.RESERVE_DRAIN,
                         ScenarioType.FLASH_LOAN_DEPEG,
-                    } and amount >= 5_000_000  # 500만 토큰 이상 대규모
-                )
+                    } and amount >= 5_000_000
+                ) or scenario.parameters.get('is_catastrophic', False)
                 is_sybil_large = (
                     scenario.scenario_type == ScenarioType.SYBIL_ATTACK
                     and scenario.parameters.get('num_wallets', 0) >= 50
                 )
 
-                if is_catastrophic or is_sybil_large:
-                    # ★ 대규모 Macro 공격 → 전체 네트워크 중단 불가피
-                    service_downtime_sec = random.uniform(300, 900)  # 5~15분
+                if is_catastrophic_flag or is_sybil_large:
+                    # 대규모 → 전체 네트워크 중단 불가피 (5~15분)
+                    service_downtime_sec = random.uniform(300, 900)
                     freeze_scope = 'full_network'
                     response_action = 'pause_all'
-                    micro_available = False  # 예외적으로 소액도 중단
+                    micro_available = False
                 else:
-                    # 일반 Macro 공격 → Macro 계층만 선택적 정지
-                    service_downtime_sec = random.uniform(120, 600)  # 2~10분
-                    micro_available = True  # ★ 소액결제는 계속 운영!
+                    # 일반 Macro → Macro 계층만 정지, Micro 유지 (2~10분)
+                    service_downtime_sec = random.uniform(120, 600)
+                    micro_available = True  # ★ 소액결제 계속 운영
                     freeze_scope = 'selective'
                     response_action = 'pause_macro'
 
-            # ── Micro 공격 ──────────────────────────────────────────────────
+            # ── Micro 공격 ─────────────────────────────────────────────────
             else:
-                # GRADUAL_ESCALATION / THRESHOLD_EVASION / CAMOUFLAGE
-                # → 해당 지갑만 동결, 서비스 중단 최소화
-                service_downtime_sec = random.uniform(0.5, 30)  # 0.5~30초 (지갑 동결 TX)
-                micro_available = True  # 다른 소액결제는 정상
+                # 해당 지갑만 동결, 서비스 중단 최소화 (0.5~30초)
+                service_downtime_sec = random.uniform(0.5, 30)
+                micro_available = True
                 freeze_scope = 'selective'
                 response_action = 'freeze_wallet'
 
@@ -150,21 +208,23 @@ class FDSTwoLayerSystem(DetectionSystem):
             elif scenario.network_condition == 'severe':
                 service_downtime_sec *= 1.2
 
-        
-        # 가스 소비량 (2계층 최적화)
+        # ─── 가스 소비량 (2계층 최적화) ────────────────────────────────────
         gas_details = {}
         if detected_as_attack:
             gas_details = {
-                'signature_verification': 21000.0, # Macro 전용 사전 서명 검증
-                'pause': 18000.0,                  # 선택적 Pause (최적화)
-                'blacklist_addition': 32000.0       # 효율적 매핑 관리
+                'signature_verification': 21000.0,  # Macro 전용 사전 서명 검증
+                'pause': 18000.0,                   # 선택적 Pause (최적화)
+                'blacklist_addition': 32000.0        # 효율적 매핑 관리
             }
 
         return DetectionResponse(
             prediction=prediction,
             latency_ms=latency_ms,
             financial_loss=financial_loss,
+            micro_secondary_loss=micro_secondary_loss,
+            leaked_tokens=leaked_tokens,
             service_downtime_sec=service_downtime_sec,
+            downtime_opportunity_cost=0.0,  # 2계층은 선택적 pause → 기회비용 최소
             micro_available=micro_available,
             freeze_scope=freeze_scope,
             response_action=response_action,

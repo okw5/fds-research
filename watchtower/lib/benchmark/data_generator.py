@@ -53,9 +53,9 @@ class BenchmarkDataGenerator:
     # =========================================================================
     
     def generate_infinite_mint_attack(self, 
-                                      amount_range: tuple = (100, 500000),
+                                      amount_range: tuple = (100_000, 5_000_000),
                                       network: str = "normal") -> Scenario:
-        """무한 민트 공격 시나리오 생성"""
+        """무한 민트 공격 시나리오 생성 (100K~5M 토큰)"""
         amount = random.randint(*amount_range)
         return Scenario(
             label=ScenarioLabel.ATTACK,
@@ -66,6 +66,29 @@ class BenchmarkDataGenerator:
                 'amount': amount,
                 'method': 'direct_mint',
                 'blocks': 1
+            },
+            network_condition=network,
+            expected_detection=True
+        )
+
+    def generate_catastrophic_mint_attack(self,
+                                          network: str = "normal") -> Scenario:
+        """
+        치명적 대량 발행 공격 — 5M~50M 토큰 (Catastrophic 범위).
+        이 규모의 공격은 토큰 가치를 즉시 붕괴시켜
+        2계층에서도 Micro 채널로 위조 토큰이 유입되는 2차 피해가 발생합니다.
+        """
+        amount = random.randint(5_000_000, 50_000_000)
+        return Scenario(
+            label=ScenarioLabel.ATTACK,
+            scenario_type=ScenarioType.INFINITE_MINT,
+            name="치명적 대량 발행 공격 (Catastrophic)",
+            description=f"{amount:,} 토큰 불법 발행 — 즉각적 서비스 중단 필요",
+            parameters={
+                'amount': amount,
+                'method': 'direct_mint',
+                'blocks': 1,
+                'is_catastrophic': True   # 2계층에서 Micro 2차 피해 활성화 플래그
             },
             network_condition=network,
             expected_detection=True
@@ -138,7 +161,7 @@ class BenchmarkDataGenerator:
                               wallet_count: int = 10,
                               amount_per_wallet: int = 5000,
                               network: str = "normal") -> Scenario:
-        """분산 공격 (Sybil Attack) 시나리오 생성"""
+        """분산 공격 (Sybil Attack) 시나리오 생성 — 일반 규모"""
         total_amount = wallet_count * amount_per_wallet
         return Scenario(
             label=ScenarioLabel.ATTACK,
@@ -283,6 +306,45 @@ class BenchmarkDataGenerator:
             expected_detection=False
         )
     
+    def generate_micro_sybil_swarm(self, network: str = "normal") -> Scenario:
+        """
+        소규모 Micro 시빌 떼 공격 — 단일계층 엔진 과부하 트리거용
+
+        특징:
+        - 지갑 수: 50~200개 (대규모 분산)
+        - 건당 금액: 100~999 토큰 (임계값 1,000 미달 → 단건 탐지 불가)
+        - 목적: 임계값 이하 소액 반복으로 Macro 탐지 우회
+
+        [단일계층 영향]
+        - 개별 건 임계값 미달 → 누적 패턴 탐지 필요 → 3.5배 지연
+        - 과부하 누적 → FPR 상승
+
+        [2계층 영향]
+        - Micro 엔진이 즉시 분산 패턴 감지 (60ms)
+        - Macro 엔진 부하 없음 → 서비스 연속성 유지
+        """
+        wallet_count = random.randint(50, 200)
+        amount_per_wallet = random.randint(100, 999)  # 임계값(1,000) 미달
+        total_amount = wallet_count * amount_per_wallet
+        return Scenario(
+            label=ScenarioLabel.ATTACK,
+            scenario_type=ScenarioType.SYBIL_ATTACK,
+            name="소규모 시빌 떼 공격 (Micro Swarm)",
+            description=(
+                f"{wallet_count}개 지갑 × {amount_per_wallet:,}토큰 "
+                f"(임계값 미달 소액 분산) → 총 {total_amount:,}토큰"
+            ),
+            parameters={
+                'num_wallets': wallet_count,
+                'amount_per_wallet': amount_per_wallet,
+                'amount': total_amount,
+                'is_micro_swarm': True,         # 단일계층 지연 탐지 트리거
+                'below_threshold': True,         # 개별 건 임계값 미달
+            },
+            network_condition=network,
+            expected_detection=True
+        )
+
     def generate_normal_mint(self,
                              amount_range: tuple = (1000, 5000),
                              network: str = "normal") -> Scenario:
@@ -316,6 +378,22 @@ class BenchmarkDataGenerator:
             network_mix: True면 다양한 네트워크 상태 혼합
         """
         scenarios = []
+
+        networks = ['normal'] if not network_mix else ['normal', 'congested', 'severe']
+
+        # Catastrophic 공격 (15%): 단일·2계층 Downtime 차이 극대화
+        catastrophic_count = max(1, int(count * 0.15))
+        for _ in range(catastrophic_count):
+            network = random.choice(networks)
+            scenarios.append(self.generate_catastrophic_mint_attack(network=network))
+
+        # Micro 시빌 떼 공격 (20%): 단일계층 과부하 및 지연 탐지 트리거
+        micro_swarm_count = max(1, int(count * 0.20))
+        for _ in range(micro_swarm_count):
+            network = random.choice(networks)
+            scenarios.append(self.generate_micro_sybil_swarm(network=network))
+
+        # 일반 공격 (나머지 65%)
         attack_generators = [
             self.generate_infinite_mint_attack,
             self.generate_reserve_drain_attack,
@@ -324,14 +402,12 @@ class BenchmarkDataGenerator:
             self.generate_sybil_attack,
             self.generate_gradual_escalation_attack,
         ]
-        
-        networks = ['normal'] if not network_mix else ['normal', 'congested', 'severe']
-        
-        for i in range(count):
+        remaining = count - catastrophic_count - micro_swarm_count
+        for i in range(remaining):
             generator = random.choice(attack_generators)
             network = random.choice(networks)
             scenarios.append(generator(network=network))
-        
+
         return scenarios
     
     def generate_normal_scenarios(self, count: int,
