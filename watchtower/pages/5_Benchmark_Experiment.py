@@ -68,8 +68,9 @@ attack_ratio = st.sidebar.slider(
 iterations = st.sidebar.slider(
     "반복 횟수",
     min_value=1,
-    max_value=10,
+    max_value=60,
     value=1,
+    step=1,
     help="통계적 유의성을 위한 반복 실험 횟수"
 )
 
@@ -78,6 +79,23 @@ include_network_mix = st.sidebar.checkbox(
     value=True,
     help="정상/혼잡/극심한 혼잡 네트워크 조건 포함"
 )
+
+st.sidebar.divider()
+st.sidebar.subheader("📦 데이터셋 소스")
+dataset_source = st.sidebar.radio(
+    "데이터셋 유형 선택",
+    options=["시뮬레이션", "실제 컨트랙트", "하이브리드 (혼합)"],
+    index=2,
+    help=(
+        "• 시뮬레이션: 무작위 파라미터 기반 가상 시나리오\n"
+        "• 실제 컨트랙트: sample_data의 91개 실제 .sol 파일 정적 분석\n"
+        "• 하이브리드: 시뮬레이션 + 실제 컨트랙트 결합 (가장 객관적)"
+    ),
+)
+if dataset_source == "실제 컨트랙트":
+    st.sidebar.info("📌 50개 악성(positive) + 41개 정상(negative) = 91개 실제 Ethereum 스마트 컨트랙트")
+elif dataset_source == "하이브리드 (혼합)":
+    st.sidebar.info("📌 시뮬레이션 시나리오에 91개 실제 컨트랙트를 추가하여 객관성을 극대화합니다.")
 
 random_seed = st.sidebar.number_input(
     "랜덤 시드",
@@ -105,13 +123,30 @@ with col_gen:
     if st.button("🔄 데이터셋 생성", use_container_width=True):
         with st.spinner("데이터셋 생성 중..."):
             generator = BenchmarkDataGenerator(seed=random_seed)
-            dataset = generator.get_mixed_dataset(
-                total_count=dataset_size,
-                attack_ratio=attack_ratio,
-                network_mix=include_network_mix
-            )
+
+            if dataset_source == "시뮬레이션":
+                dataset = generator.get_mixed_dataset(
+                    total_count=dataset_size,
+                    attack_ratio=attack_ratio,
+                    network_mix=include_network_mix
+                )
+            elif dataset_source == "실제 컨트랙트":
+                dataset = generator.get_real_contract_dataset(shuffle=True)
+            else:  # 하이브리드
+                dataset = generator.get_hybrid_dataset(
+                    total_simulated=dataset_size,
+                    attack_ratio=attack_ratio,
+                    network_mix=include_network_mix
+                )
+
             st.session_state.benchmark_dataset = dataset
-            st.success(f"✅ {len(dataset)}개 시나리오 생성 완료!")
+
+            # 실제 컨트랙트 통계 표시
+            real_count = sum(1 for s in dataset if s.parameters.get('is_real_contract', False))
+            if real_count > 0:
+                st.success(f"✅ {len(dataset)}개 시나리오 생성 완료! (실제 컨트랙트: {real_count}개 포함)")
+            else:
+                st.success(f"✅ {len(dataset)}개 시나리오 생성 완료!")
 
 with col_preview:
     if st.session_state.benchmark_dataset:

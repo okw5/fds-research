@@ -3,6 +3,8 @@ BenchmarkDataGenerator
 레이블이 포함된 벤치마크 테스트 데이터 생성
 """
 
+import os
+import json
 import random
 from typing import List, Dict, Any, Optional
 
@@ -499,3 +501,86 @@ class BenchmarkDataGenerator:
         
         random.shuffle(scenarios)
         return scenarios
+
+    # =========================================================================
+    # 실제 컨트랙트 기반 데이터셋 (sample_data)
+    # =========================================================================
+
+    @staticmethod
+    def _find_sample_data_root() -> Optional[str]:
+        """sample_data/sample_data 디렉토리를 자동으로 탐색합니다."""
+        # watchtower/lib/benchmark/ → 프로젝트 루트
+        base = os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__))
+        )))
+        candidate = os.path.join(base, "sample_data", "sample_data")
+        if os.path.isdir(candidate):
+            return candidate
+        return None
+
+    def get_real_contract_dataset(self,
+                                  shuffle: bool = True) -> List[Scenario]:
+        """
+        sample_data의 실제 스마트 컨트랙트를 정적 분석하여
+        레이블이 포함된 객관적 데이터셋을 반환합니다.
+
+        Returns:
+            List[Scenario] — positive(ATTACK) + negative(NORMAL)
+        """
+        sample_root = self._find_sample_data_root()
+        if sample_root is None:
+            print("[BenchmarkDataGenerator] sample_data 디렉토리를 찾을 수 없습니다.")
+            return []
+
+        # 캐시된 JSON이 있으면 빠르게 로드
+        cache_path = os.path.join(os.path.dirname(sample_root), "real_contract_dataset.json")
+        if os.path.exists(cache_path):
+            with open(cache_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            scenarios = [Scenario.from_dict(d) for d in data]
+        else:
+            # 직접 분석
+            try:
+                from .contract_analyzer import ContractAnalyzer
+            except ImportError:
+                from contract_analyzer import ContractAnalyzer
+            analyzer = ContractAnalyzer(sample_root)
+            scenarios = analyzer.generate_dataset()
+            # 캐시 저장
+            analyzer.export_dataset_json(cache_path)
+
+        if shuffle:
+            random.shuffle(scenarios)
+        return scenarios
+
+    def get_hybrid_dataset(self,
+                           total_simulated: int = 500,
+                           attack_ratio: float = 0.3,
+                           network_mix: bool = True,
+                           shuffle: bool = True) -> List[Scenario]:
+        """
+        시뮬레이션 데이터 + 실제 컨트랙트 데이터를 결합한 하이브리드 데이터셋.
+
+        연구 논문에서 가장 객관적인 평가를 위해 사용합니다:
+        - 시뮬레이션 데이터: 다양한 공격 전략과 네트워크 조건
+        - 실제 컨트랙트: Ground Truth가 보장된 실제 사례
+
+        Args:
+            total_simulated: 시뮬레이션 시나리오 수
+            attack_ratio: 시뮬레이션 공격 비율
+            network_mix: 네트워크 상태 다양화
+            shuffle: 셔플 여부
+        """
+        simulated = self.get_mixed_dataset(
+            total_count=total_simulated,
+            attack_ratio=attack_ratio,
+            network_mix=network_mix,
+            shuffle=False,
+        )
+        real = self.get_real_contract_dataset(shuffle=False)
+
+        dataset = simulated + real
+
+        if shuffle:
+            random.shuffle(dataset)
+        return dataset

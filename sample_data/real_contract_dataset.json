@@ -1,0 +1,3296 @@
+[
+  {
+    "id": "90df2bdb",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0x00730ac0",
+    "description": "[실제 컨트랙트 0x00730ac0...] 악성 패턴 탐지: hidden_fee, sell_counter, max_wallet_limit (risk_score=31.0)",
+    "parameters": {
+      "amount": 320000,
+      "source_address": "0x00730ac0c56eae1a0958B7e2b43985aC831293c3",
+      "source_file": "0x00730ac0c56eae1a0958B7e2b43985aC831293c3.sol",
+      "solidity_version": "0.8.23",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "RYUJI"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 15,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "swap_fee_mechanism": 9,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 8,
+        "event_logging": 6,
+        "interface_usage": 4
+      },
+      "malicious_score": 49,
+      "legitimate_score": 18,
+      "risk_score": 31,
+      "function_count": 41,
+      "total_lines": 723,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "131817d1",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x09152E0b",
+    "description": "[실제 컨트랙트 0x09152E0b...] 악성 패턴 탐지: max_wallet_limit, swap_fee_mechanism, tx_origin_usage (risk_score=-9.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x09152E0bA9c9D202E2660373F131f15c594344bB",
+      "source_file": "0x09152E0bA9c9D202E2660373F131f15c594344bB.sol",
+      "solidity_version": "^0.8.26",
+      "contract_names": [
+        "Context",
+        "ERC20",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "max_wallet_limit": 6,
+        "swap_fee_mechanism": 2,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "unrestricted_mint": 1,
+        "tx_origin_usage": 2
+      },
+      "legitimate_hits": {
+        "access_control": 12,
+        "event_logging": 4,
+        "interface_usage": 6
+      },
+      "malicious_score": 13,
+      "legitimate_score": 22,
+      "risk_score": -9,
+      "function_count": 57,
+      "total_lines": 497,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "e809c53f",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0x0ba0688D",
+    "description": "[실제 컨트랙트 0x0ba0688D...] 악성 패턴 탐지:  (risk_score=0.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x0ba0688D50e5795877ebAca3e6eE4b4a9A4790EE",
+      "source_file": "0x0ba0688D50e5795877ebAca3e6eE4b4a9A4790EE.sol",
+      "solidity_version": "unknown",
+      "contract_names": [],
+      "malicious_hits": {},
+      "legitimate_hits": {},
+      "malicious_score": 0,
+      "legitimate_score": 0,
+      "risk_score": 0,
+      "function_count": 0,
+      "total_lines": 2,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "b60f5b98",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0x0e77a702",
+    "description": "[실제 컨트랙트 0x0e77a702...] 악성 패턴 탐지: sell_counter, hidden_fee, max_wallet_limit (risk_score=22.0)",
+    "parameters": {
+      "amount": 230000,
+      "source_address": "0x0e77a7026a21F74aa1C65E7086A49F5814068939",
+      "source_file": "0x0e77a7026a21F74aa1C65E7086A49F5814068939.sol",
+      "solidity_version": "0.8.23",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "PND"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 11,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 16,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 46,
+      "legitimate_score": 24,
+      "risk_score": 22,
+      "function_count": 46,
+      "total_lines": 759,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "2c4b9486",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0x1101BaF7",
+    "description": "[실제 컨트랙트 0x1101BaF7...] 악성 패턴 탐지: sell_counter, hidden_fee, max_wallet_limit (risk_score=20.0)",
+    "parameters": {
+      "amount": 210000,
+      "source_address": "0x1101BaF7A2643Cb4aE78324C9DFBc60873759ABf",
+      "source_file": "0x1101BaF7A2643Cb4aE78324C9DFBc60873759ABf.sol",
+      "solidity_version": "0.8.25",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "Marvin"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 11,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 18,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 46,
+      "legitimate_score": 26,
+      "risk_score": 20,
+      "function_count": 46,
+      "total_lines": 747,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "c3b3fbc9",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x11182c19",
+    "description": "[실제 컨트랙트 0x11182c19...] 악성 패턴 탐지: unrestricted_mint (risk_score=-13.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x11182c19677Edf880efa2501b2F9EC7379656c61",
+      "source_file": "0x11182c19677Edf880efa2501b2F9EC7379656c61.sol",
+      "solidity_version": "^0.8.27",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "ERC20"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 7,
+        "event_logging": 3,
+        "interface_usage": 4
+      },
+      "malicious_score": 1,
+      "legitimate_score": 14,
+      "risk_score": -13,
+      "function_count": 31,
+      "total_lines": 242,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "d8c558c7",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x13656Db1",
+    "description": "[실제 컨트랙트 0x13656Db1...] 악성 패턴 탐지: unrestricted_mint (risk_score=-27.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x13656Db100aE854013EE812701d2a13830985d11",
+      "source_file": "0x13656Db100aE854013EE812701d2a13830985d11.sol",
+      "solidity_version": "^0.8.20",
+      "contract_names": [
+        "is",
+        "Context",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 13,
+        "event_logging": 3,
+        "interface_usage": 12
+      },
+      "malicious_score": 1,
+      "legitimate_score": 28,
+      "risk_score": -27,
+      "function_count": 35,
+      "total_lines": 1399,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "a4d83b40",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x1e0f798c",
+    "description": "[실제 컨트랙트 0x1e0f798c...] 악성 패턴 탐지: unrestricted_mint (risk_score=-13.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x1e0f798c75505D8EAcA5A4073FD7Af5B2b05Fe54",
+      "source_file": "0x1e0f798c75505D8EAcA5A4073FD7Af5B2b05Fe54.sol",
+      "solidity_version": "^0.8.27",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "ERC20"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 7,
+        "event_logging": 3,
+        "interface_usage": 4
+      },
+      "malicious_score": 1,
+      "legitimate_score": 14,
+      "risk_score": -13,
+      "function_count": 31,
+      "total_lines": 485,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "85dbbf66",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x2426Ea75",
+    "description": "[실제 컨트랙트 0x2426Ea75...] 악성 패턴 탐지: blacklist, swap_fee_mechanism, hardcoded_router (risk_score=-12.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x2426Ea75A12920ACb7AE18e47793AC1a9AaCF1e7",
+      "source_file": "0x2426Ea75A12920ACb7AE18e47793AC1a9AaCF1e7.sol",
+      "solidity_version": "^0.8.26",
+      "contract_names": [
+        "Context",
+        "ERC20",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "blacklist": 6,
+        "swap_fee_mechanism": 2,
+        "hardcoded_router": 1,
+        "unrestricted_mint": 1,
+        "tx_origin_usage": 1
+      },
+      "legitimate_hits": {
+        "access_control": 13,
+        "event_logging": 4,
+        "interface_usage": 6
+      },
+      "malicious_score": 11,
+      "legitimate_score": 23,
+      "risk_score": -12,
+      "function_count": 56,
+      "total_lines": 965,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "4ec52283",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0x245505c2",
+    "description": "[실제 컨트랙트 0x245505c2...] 악성 패턴 탐지: trading_lock, hardcoded_router, owner_trading_control (risk_score=2.0)",
+    "parameters": {
+      "amount": 30000,
+      "source_address": "0x245505c20b2c2bE68c1152B45881d2670Ee676af",
+      "source_file": "0x245505c20b2c2bE68c1152B45881d2670Ee676af.sol",
+      "solidity_version": "0.8.26",
+      "contract_names": [
+        "VitalikBigDickInu"
+      ],
+      "malicious_hits": {
+        "trading_lock": 2,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "tx_origin_usage": 1
+      },
+      "legitimate_hits": {
+        "event_logging": 2,
+        "interface_usage": 1
+      },
+      "malicious_score": 5,
+      "legitimate_score": 3,
+      "risk_score": 2,
+      "function_count": 5,
+      "total_lines": 159,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "2691aee3",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x2766a827",
+    "description": "[실제 컨트랙트 0x2766a827...] 악성 패턴 탐지: max_wallet_limit, swap_fee_mechanism, hardcoded_router (risk_score=-9.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x2766a8271A17ee35DcaB0C4D9637f106286cFC0E",
+      "source_file": "0x2766a8271A17ee35DcaB0C4D9637f106286cFC0E.sol",
+      "solidity_version": "^0.8.26",
+      "contract_names": [
+        "Context",
+        "ERC20",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "max_wallet_limit": 6,
+        "swap_fee_mechanism": 2,
+        "hardcoded_router": 1,
+        "unrestricted_mint": 1,
+        "tx_origin_usage": 1
+      },
+      "legitimate_hits": {
+        "access_control": 11,
+        "event_logging": 3,
+        "interface_usage": 6
+      },
+      "malicious_score": 11,
+      "legitimate_score": 20,
+      "risk_score": -9,
+      "function_count": 56,
+      "total_lines": 460,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "12244b5c",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0x28E6aDDA",
+    "description": "[실제 컨트랙트 0x28E6aDDA...] 악성 패턴 탐지: sell_counter, hidden_fee, max_wallet_limit (risk_score=20.0)",
+    "parameters": {
+      "amount": 210000,
+      "source_address": "0x28E6aDDA42183F61c2b7d36053d15D37aFF11101",
+      "source_file": "0x28E6aDDA42183F61c2b7d36053d15D37aFF11101.sol",
+      "solidity_version": "0.8.25",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "Marvin"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 11,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 18,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 46,
+      "legitimate_score": 26,
+      "risk_score": 20,
+      "function_count": 46,
+      "total_lines": 747,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "eb9b45e0",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x2B9b4145",
+    "description": "[실제 컨트랙트 0x2B9b4145...] 악성 패턴 탐지: tx_origin_usage, unrestricted_mint (risk_score=-146.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x2B9b4145966f298c6552102189572c94f6007be1",
+      "source_file": "0x2B9b4145966f298c6552102189572c94f6007be1.sol",
+      "solidity_version": "0.8.25",
+      "contract_names": [
+        "before",
+        "facilitates",
+        "L1XERC20Gateway"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 3,
+        "tx_origin_usage": 4
+      },
+      "legitimate_hits": {
+        "access_control": 26,
+        "event_logging": 40,
+        "reentrancy_guard": 8,
+        "interface_usage": 72,
+        "oracle_integration": 5,
+        "governance": 2
+      },
+      "malicious_score": 7,
+      "legitimate_score": 153,
+      "risk_score": -146,
+      "function_count": 370,
+      "total_lines": 6293,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "da115a76",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0x2a37D63E",
+    "description": "[실제 컨트랙트 0x2a37D63E...] 악성 패턴 탐지:  (risk_score=-2.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x2a37D63EAdFe4b4682a3c28C1c2cD4F109Cc2762",
+      "source_file": "0x2a37D63EAdFe4b4682a3c28C1c2cD4F109Cc2762.sol",
+      "solidity_version": "^0.8.17",
+      "contract_names": [
+        "GasZipV2"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "event_logging": 1,
+        "interface_usage": 1
+      },
+      "malicious_score": 0,
+      "legitimate_score": 2,
+      "risk_score": -2,
+      "function_count": 6,
+      "total_lines": 42,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "8e94bf39",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x30aB8926",
+    "description": "[실제 컨트랙트 0x30aB8926...] 악성 패턴 탐지: unrestricted_mint (risk_score=-40.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x30aB8926FBE6c3aeEf52aFC575E54FAD3ae84a24",
+      "source_file": "0x30aB8926FBE6c3aeEf52aFC575E54FAD3ae84a24.sol",
+      "solidity_version": "=0.8.24",
+      "contract_names": [
+        "MainnetActionsUtilAddresses",
+        "ActionsUtilHelper",
+        "MainnetAuthAddresses"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 12,
+        "event_logging": 15,
+        "interface_usage": 8,
+        "erc4626_vault": 6
+      },
+      "malicious_score": 1,
+      "legitimate_score": 41,
+      "risk_score": -40,
+      "function_count": 108,
+      "total_lines": 1363,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "84ff4f5a",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0x42069A03",
+    "description": "[실제 컨트랙트 0x42069A03...] 악성 패턴 탐지: sell_counter, hidden_fee, max_wallet_limit (risk_score=22.0)",
+    "parameters": {
+      "amount": 230000,
+      "source_address": "0x42069A030B0e3E83f80ccEB10a52344518a11D95",
+      "source_file": "0x42069A030B0e3E83f80ccEB10a52344518a11D95.sol",
+      "solidity_version": "0.8.25",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "TARDIGRADES"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 11,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 16,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 46,
+      "legitimate_score": 24,
+      "risk_score": 22,
+      "function_count": 44,
+      "total_lines": 727,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "8bcf395e",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0x4936e631",
+    "description": "[실제 컨트랙트 0x4936e631...] 악성 패턴 탐지: hidden_fee, sell_counter, max_wallet_limit (risk_score=31.0)",
+    "parameters": {
+      "amount": 320000,
+      "source_address": "0x4936e6310552388fa31C5e9e674389899D509f2D",
+      "source_file": "0x4936e6310552388fa31C5e9e674389899D509f2D.sol",
+      "solidity_version": "0.8.23",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "POCO"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 15,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "swap_fee_mechanism": 9,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 8,
+        "event_logging": 6,
+        "interface_usage": 4
+      },
+      "malicious_score": 49,
+      "legitimate_score": 18,
+      "risk_score": 31,
+      "function_count": 41,
+      "total_lines": 725,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "0778c873",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0x4ab9ddF6",
+    "description": "[실제 컨트랙트 0x4ab9ddF6...] 악성 패턴 탐지:  (risk_score=-1.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x4ab9ddF6ba0D5E33beB7133B1fe65FDa21b55249",
+      "source_file": "0x4ab9ddF6ba0D5E33beB7133B1fe65FDa21b55249.sol",
+      "solidity_version": "0.6.12",
+      "contract_names": [
+        "transferSafe"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "interface_usage": 1
+      },
+      "malicious_score": 0,
+      "legitimate_score": 1,
+      "risk_score": -1,
+      "function_count": 4,
+      "total_lines": 51,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "b47bfc5c",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0x5803C399",
+    "description": "[실제 컨트랙트 0x5803C399...] 악성 패턴 탐지:  (risk_score=-35.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x5803C399EE9f887C8b81075E4C185c448361c235",
+      "source_file": "0x5803C399EE9f887C8b81075E4C185c448361c235.sol",
+      "solidity_version": "=0.8.24",
+      "contract_names": [
+        "MainnetActionsUtilAddresses",
+        "ActionsUtilHelper",
+        "MainnetAuthAddresses"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "access_control": 12,
+        "event_logging": 15,
+        "interface_usage": 8
+      },
+      "malicious_score": 0,
+      "legitimate_score": 35,
+      "risk_score": -35,
+      "function_count": 102,
+      "total_lines": 1298,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "a96d0aec",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0x5e3E8691",
+    "description": "[실제 컨트랙트 0x5e3E8691...] 악성 패턴 탐지:  (risk_score=-4.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x5e3E869191A37f73a1a005CD2FB3bfA07201aC9A",
+      "source_file": "0x5e3E869191A37f73a1a005CD2FB3bfA07201aC9A.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "KeroppiGeneration",
+        "owner"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "access_control": 3,
+        "interface_usage": 1
+      },
+      "malicious_score": 0,
+      "legitimate_score": 4,
+      "risk_score": -4,
+      "function_count": 6,
+      "total_lines": 71,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "742f671a",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x61C8E8FD",
+    "description": "[실제 컨트랙트 0x61C8E8FD...] 악성 패턴 탐지: unrestricted_mint (risk_score=-13.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x61C8E8FD2A157b09C882c25BB987764A37478A4C",
+      "source_file": "0x61C8E8FD2A157b09C882c25BB987764A37478A4C.sol",
+      "solidity_version": "^0.8.27",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "ERC20"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 7,
+        "event_logging": 3,
+        "interface_usage": 4
+      },
+      "malicious_score": 1,
+      "legitimate_score": 14,
+      "risk_score": -13,
+      "function_count": 31,
+      "total_lines": 242,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "d94097e9",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x63a0909c",
+    "description": "[실제 컨트랙트 0x63a0909c...] 악성 패턴 탐지: unrestricted_mint, tx_origin_usage (risk_score=-23.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x63a0909c83246234FA520f3f6a0aF191256F5E7B",
+      "source_file": "0x63a0909c83246234FA520f3f6a0aF191256F5E7B.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "is",
+        "Context",
+        "using"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1,
+        "tx_origin_usage": 1
+      },
+      "legitimate_hits": {
+        "access_control": 16,
+        "event_logging": 3,
+        "interface_usage": 6
+      },
+      "malicious_score": 2,
+      "legitimate_score": 25,
+      "risk_score": -23,
+      "function_count": 44,
+      "total_lines": 672,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "914ac97e",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x67208817",
+    "description": "[실제 컨트랙트 0x67208817...] 악성 패턴 탐지: unrestricted_mint (risk_score=-13.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x672088172cAcC48a16783aA6097db5a7DDC77E5F",
+      "source_file": "0x672088172cAcC48a16783aA6097db5a7DDC77E5F.sol",
+      "solidity_version": "^0.8.27",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "ERC20"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 7,
+        "event_logging": 3,
+        "interface_usage": 4
+      },
+      "malicious_score": 1,
+      "legitimate_score": 14,
+      "risk_score": -13,
+      "function_count": 31,
+      "total_lines": 242,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "aa29ff29",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0x69De0A49",
+    "description": "[실제 컨트랙트 0x69De0A49...] 악성 패턴 탐지: sell_counter, hidden_fee, max_wallet_limit (risk_score=22.0)",
+    "parameters": {
+      "amount": 230000,
+      "source_address": "0x69De0A491d9e26625A727059C2D5532d8bF427fD",
+      "source_file": "0x69De0A491d9e26625A727059C2D5532d8bF427fD.sol",
+      "solidity_version": "0.8.25",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "MPEPE"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 11,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 16,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 46,
+      "legitimate_score": 24,
+      "risk_score": 22,
+      "function_count": 44,
+      "total_lines": 731,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "2908f119",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x6d9150c4",
+    "description": "[실제 컨트랙트 0x6d9150c4...] 악성 패턴 탐지: unrestricted_mint, tx_origin_usage (risk_score=-18.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x6d9150c4DE732A72D9c7D56Cf3230e552dCc8fD1",
+      "source_file": "0x6d9150c4DE732A72D9c7D56Cf3230e552dCc8fD1.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "is",
+        "Context",
+        "using"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1,
+        "tx_origin_usage": 1
+      },
+      "legitimate_hits": {
+        "access_control": 11,
+        "event_logging": 3,
+        "interface_usage": 6
+      },
+      "malicious_score": 2,
+      "legitimate_score": 20,
+      "risk_score": -18,
+      "function_count": 31,
+      "total_lines": 562,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "41af5875",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0x73Edf493",
+    "description": "[실제 컨트랙트 0x73Edf493...] 악성 패턴 탐지:  (risk_score=-9.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x73Edf493FbbC0c40eebF63752eb15e4621C1EceF",
+      "source_file": "0x73Edf493FbbC0c40eebF63752eb15e4621C1EceF.sol",
+      "solidity_version": "^0.8.20",
+      "contract_names": [
+        "provides",
+        "using",
+        "as"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "event_logging": 3,
+        "reentrancy_guard": 1,
+        "interface_usage": 5
+      },
+      "malicious_score": 0,
+      "legitimate_score": 9,
+      "risk_score": -9,
+      "function_count": 33,
+      "total_lines": 1213,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "be85d622",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x77139957",
+    "description": "[실제 컨트랙트 0x77139957...] 악성 패턴 탐지: unrestricted_mint (risk_score=-13.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x77139957DFc53411D68BDC6a163BEf783B9Fe200",
+      "source_file": "0x77139957DFc53411D68BDC6a163BEf783B9Fe200.sol",
+      "solidity_version": "^0.8.20",
+      "contract_names": [
+        "is",
+        "Context",
+        "using"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "event_logging": 2,
+        "interface_usage": 12
+      },
+      "malicious_score": 1,
+      "legitimate_score": 14,
+      "risk_score": -13,
+      "function_count": 29,
+      "total_lines": 1267,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "bd148e2e",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x78157B07",
+    "description": "[실제 컨트랙트 0x78157B07...] 악성 패턴 탐지: max_wallet_limit, swap_fee_mechanism, blacklist (risk_score=-26.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x78157B07f1A8DB26A6Fe1514d94565b96fb494bB",
+      "source_file": "0x78157B07f1A8DB26A6Fe1514d94565b96fb494bB.sol",
+      "solidity_version": "^0.8.4",
+      "contract_names": [
+        "is",
+        "Context",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "trading_lock": 2,
+        "max_wallet_limit": 20,
+        "blacklist": 3,
+        "swap_fee_mechanism": 7,
+        "hardcoded_router": 2,
+        "owner_trading_control": 1,
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 34,
+        "event_logging": 17,
+        "reentrancy_guard": 1,
+        "interface_usage": 10
+      },
+      "malicious_score": 36,
+      "legitimate_score": 62,
+      "risk_score": -26,
+      "function_count": 173,
+      "total_lines": 3577,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "f3a68811",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x797f6A17",
+    "description": "[실제 컨트랙트 0x797f6A17...] 악성 패턴 탐지: max_wallet_limit, swap_fee_mechanism, trading_lock (risk_score=-1.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x797f6A17B458135727Ab519512f1058eB9B6B94D",
+      "source_file": "0x797f6A17B458135727Ab519512f1058eB9B6B94D.sol",
+      "solidity_version": "0.8.18",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "ERC20"
+      ],
+      "malicious_hits": {
+        "trading_lock": 2,
+        "max_wallet_limit": 22,
+        "swap_fee_mechanism": 5,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "unrestricted_mint": 2
+      },
+      "legitimate_hits": {
+        "access_control": 15,
+        "event_logging": 12,
+        "interface_usage": 7
+      },
+      "malicious_score": 33,
+      "legitimate_score": 34,
+      "risk_score": -1,
+      "function_count": 104,
+      "total_lines": 1563,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "44c4b566",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0x79955662",
+    "description": "[실제 컨트랙트 0x79955662...] 악성 패턴 탐지: hidden_fee, swap_fee_mechanism, hardcoded_router (risk_score=-6.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x79955662FFb5Fa900b73cf3FfE07ed13F686d06E",
+      "source_file": "0x79955662FFb5Fa900b73cf3FfE07ed13F686d06E.sol",
+      "solidity_version": "0.8.19",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "FUTAI"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 8,
+        "swap_fee_mechanism": 5,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1
+      },
+      "legitimate_hits": {
+        "access_control": 14,
+        "event_logging": 3,
+        "interface_usage": 4
+      },
+      "malicious_score": 15,
+      "legitimate_score": 21,
+      "risk_score": -6,
+      "function_count": 36,
+      "total_lines": 363,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "e84f9d1e",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0x81004740",
+    "description": "[실제 컨트랙트 0x81004740...] 악성 패턴 탐지:  (risk_score=-4.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x810047407361a365D4b8b960c800161E7BB6b695",
+      "source_file": "0x810047407361a365D4b8b960c800161E7BB6b695.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "YieldGeneration",
+        "owner"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "access_control": 3,
+        "interface_usage": 1
+      },
+      "malicious_score": 0,
+      "legitimate_score": 4,
+      "risk_score": -4,
+      "function_count": 6,
+      "total_lines": 71,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "2742ce47",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0x8A2A23Df",
+    "description": "[실제 컨트랙트 0x8A2A23Df...] 악성 패턴 탐지:  (risk_score=-35.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x8A2A23DfC0CD1738bD4408F1668E2B12ACD95369",
+      "source_file": "0x8A2A23DfC0CD1738bD4408F1668E2B12ACD95369.sol",
+      "solidity_version": "=0.8.24",
+      "contract_names": [
+        "MainnetActionsUtilAddresses",
+        "ActionsUtilHelper",
+        "MainnetAuthAddresses"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "access_control": 12,
+        "event_logging": 15,
+        "interface_usage": 8
+      },
+      "malicious_score": 0,
+      "legitimate_score": 35,
+      "risk_score": -35,
+      "function_count": 102,
+      "total_lines": 1292,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "0eabea81",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0x8C3238fe",
+    "description": "[실제 컨트랙트 0x8C3238fe...] 악성 패턴 탐지: blacklist, swap_fee_mechanism, hardcoded_router (risk_score=-12.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x8C3238fe373b21ff2b9B9bC4b9322a5cD8eb45D4",
+      "source_file": "0x8C3238fe373b21ff2b9B9bC4b9322a5cD8eb45D4.sol",
+      "solidity_version": "^0.8.26",
+      "contract_names": [
+        "Context",
+        "ERC20",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "blacklist": 6,
+        "swap_fee_mechanism": 2,
+        "hardcoded_router": 1,
+        "unrestricted_mint": 1,
+        "tx_origin_usage": 1
+      },
+      "legitimate_hits": {
+        "access_control": 13,
+        "event_logging": 4,
+        "interface_usage": 6
+      },
+      "malicious_score": 11,
+      "legitimate_score": 23,
+      "risk_score": -12,
+      "function_count": 56,
+      "total_lines": 967,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "bd9b014d",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0x8b332ac1",
+    "description": "[실제 컨트랙트 0x8b332ac1...] 악성 패턴 탐지: hidden_fee, sell_counter, max_wallet_limit (risk_score=31.0)",
+    "parameters": {
+      "amount": 320000,
+      "source_address": "0x8b332ac17Fa2e3fe166d04093ae782ae20E8b4fE",
+      "source_file": "0x8b332ac17Fa2e3fe166d04093ae782ae20E8b4fE.sol",
+      "solidity_version": "^0.8.23",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "GECKO"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 15,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "swap_fee_mechanism": 9,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 8,
+        "event_logging": 6,
+        "interface_usage": 4
+      },
+      "malicious_score": 49,
+      "legitimate_score": 18,
+      "risk_score": 31,
+      "function_count": 41,
+      "total_lines": 723,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "3b2b6e5a",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0x98Babc68",
+    "description": "[실제 컨트랙트 0x98Babc68...] 악성 패턴 탐지:  (risk_score=-13.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0x98Babc68a9d41818b7C9f2c597139b0BB3Df9835",
+      "source_file": "0x98Babc68a9d41818b7C9f2c597139b0BB3Df9835.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "TokenVesting",
+        "from"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "access_control": 4,
+        "event_logging": 4,
+        "reentrancy_guard": 4,
+        "interface_usage": 1
+      },
+      "malicious_score": 0,
+      "legitimate_score": 13,
+      "risk_score": -13,
+      "function_count": 7,
+      "total_lines": 361,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "de41ce81",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0xA2f855ED",
+    "description": "[실제 컨트랙트 0xA2f855ED...] 악성 패턴 탐지: hidden_fee, sell_counter, max_wallet_limit (risk_score=31.0)",
+    "parameters": {
+      "amount": 320000,
+      "source_address": "0xA2f855ED5Ff46358a383B6Fa640979DDb1FeF536",
+      "source_file": "0xA2f855ED5Ff46358a383B6Fa640979DDb1FeF536.sol",
+      "solidity_version": "^0.8.26",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "MOON"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 15,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "swap_fee_mechanism": 9,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 8,
+        "event_logging": 6,
+        "interface_usage": 4
+      },
+      "malicious_score": 49,
+      "legitimate_score": 18,
+      "risk_score": 31,
+      "function_count": 41,
+      "total_lines": 727,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "577a0d9e",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0xAF0bb7Cd",
+    "description": "[실제 컨트랙트 0xAF0bb7Cd...] 악성 패턴 탐지:  (risk_score=-54.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0xAF0bb7Cdcc95B049f89718c1801c1bEE0cd33b2a",
+      "source_file": "0xAF0bb7Cdcc95B049f89718c1801c1bEE0cd33b2a.sol",
+      "solidity_version": "^0.8.20",
+      "contract_names": [
+        "assumes",
+        "should",
+        "for"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "access_control": 8,
+        "event_logging": 19,
+        "reentrancy_guard": 1,
+        "interface_usage": 26
+      },
+      "malicious_score": 0,
+      "legitimate_score": 54,
+      "risk_score": -54,
+      "function_count": 183,
+      "total_lines": 3580,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "14e0c085",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0xC4d1161d",
+    "description": "[실제 컨트랙트 0xC4d1161d...] 악성 패턴 탐지: unrestricted_mint (risk_score=-13.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0xC4d1161d97F66D944E1a7F6adAbE1C76d4498756",
+      "source_file": "0xC4d1161d97F66D944E1a7F6adAbE1C76d4498756.sol",
+      "solidity_version": "^0.8.27",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "ERC20"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 7,
+        "event_logging": 3,
+        "interface_usage": 4
+      },
+      "malicious_score": 1,
+      "legitimate_score": 14,
+      "risk_score": -13,
+      "function_count": 31,
+      "total_lines": 243,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "f06651f4",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0xD1E89300",
+    "description": "[실제 컨트랙트 0xD1E89300...] 악성 패턴 탐지: unrestricted_mint (risk_score=-13.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0xD1E893003b76683F7c486EcD368AC475a86BEf78",
+      "source_file": "0xD1E893003b76683F7c486EcD368AC475a86BEf78.sol",
+      "solidity_version": "^0.8.20",
+      "contract_names": [
+        "is",
+        "Context",
+        "using"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "event_logging": 2,
+        "interface_usage": 12
+      },
+      "malicious_score": 1,
+      "legitimate_score": 14,
+      "risk_score": -13,
+      "function_count": 29,
+      "total_lines": 1277,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "81f5685f",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0xDDE08500",
+    "description": "[실제 컨트랙트 0xDDE08500...] 악성 패턴 탐지: hidden_fee, sell_counter, max_wallet_limit (risk_score=29.0)",
+    "parameters": {
+      "amount": 300000,
+      "source_address": "0xDDE08500f46937B87C955258Ba818007cF7B73be",
+      "source_file": "0xDDE08500f46937B87C955258Ba818007cF7B73be.sol",
+      "solidity_version": "^0.8.26",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "canismajor"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 15,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "swap_fee_mechanism": 7,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 8,
+        "event_logging": 6,
+        "interface_usage": 4
+      },
+      "malicious_score": 47,
+      "legitimate_score": 18,
+      "risk_score": 29,
+      "function_count": 41,
+      "total_lines": 721,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "526c612c",
+    "label": "ATTACK",
+    "scenario_type": "threshold_evasion",
+    "name": "RealContract_0xDcF16fAf",
+    "description": "[실제 컨트랙트 0xDcF16fAf...] 악성 패턴 탐지:  (risk_score=-2.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0xDcF16fAf797FD1DCEF3af70Ce2B64E52bDAD2720",
+      "source_file": "0xDcF16fAf797FD1DCEF3af70Ce2B64E52bDAD2720.sol",
+      "solidity_version": "0.8.18",
+      "contract_names": [
+        "EthPriceSource"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "interface_usage": 2
+      },
+      "malicious_score": 0,
+      "legitimate_score": 2,
+      "risk_score": -2,
+      "function_count": 4,
+      "total_lines": 85,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "942caeb8",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0xE52AcE9e",
+    "description": "[실제 컨트랙트 0xE52AcE9e...] 악성 패턴 탐지: unrestricted_mint, tx_origin_usage (risk_score=-18.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0xE52AcE9edfbf70b42Ca4A08E0fA92A4ee7Fe0E98",
+      "source_file": "0xE52AcE9edfbf70b42Ca4A08E0fA92A4ee7Fe0E98.sol",
+      "solidity_version": "0.8.9",
+      "contract_names": [
+        "is",
+        "Context",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1,
+        "tx_origin_usage": 1
+      },
+      "legitimate_hits": {
+        "access_control": 10,
+        "event_logging": 4,
+        "interface_usage": 6
+      },
+      "malicious_score": 2,
+      "legitimate_score": 20,
+      "risk_score": -18,
+      "function_count": 33,
+      "total_lines": 437,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "e480a86c",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0xb7376D66",
+    "description": "[실제 컨트랙트 0xb7376D66...] 악성 패턴 탐지: unrestricted_mint (risk_score=-13.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0xb7376D66C429f743eB05aBb8E82b8d0fD5fb2150",
+      "source_file": "0xb7376D66C429f743eB05aBb8E82b8d0fD5fb2150.sol",
+      "solidity_version": "^0.8.27",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "ERC20"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 7,
+        "event_logging": 3,
+        "interface_usage": 4
+      },
+      "malicious_score": 1,
+      "legitimate_score": 14,
+      "risk_score": -13,
+      "function_count": 31,
+      "total_lines": 242,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "56fbab00",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0xc8509942",
+    "description": "[실제 컨트랙트 0xc8509942...] 악성 패턴 탐지: sell_counter, hidden_fee, max_wallet_limit (risk_score=22.0)",
+    "parameters": {
+      "amount": 230000,
+      "source_address": "0xc85099424A5004a6c4b28fd1101E9cbEedb4dafe",
+      "source_file": "0xc85099424A5004a6c4b28fd1101E9cbEedb4dafe.sol",
+      "solidity_version": "0.8.25",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "StreetDog"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 11,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 16,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 46,
+      "legitimate_score": 24,
+      "risk_score": 22,
+      "function_count": 44,
+      "total_lines": 741,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "01156b6a",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0xcFDcF70f",
+    "description": "[실제 컨트랙트 0xcFDcF70f...] 악성 패턴 탐지: unrestricted_mint (risk_score=-19.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0xcFDcF70fD980431c725Ee7A9e5120F0e424BCF63",
+      "source_file": "0xcFDcF70fD980431c725Ee7A9e5120F0e424BCF63.sol",
+      "solidity_version": "0.8.24",
+      "contract_names": [
+        "is",
+        "Context",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 11,
+        "event_logging": 3,
+        "interface_usage": 6
+      },
+      "malicious_score": 1,
+      "legitimate_score": 20,
+      "risk_score": -19,
+      "function_count": 34,
+      "total_lines": 1301,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "0bbcd15b",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0xdAF5Ee0C",
+    "description": "[실제 컨트랙트 0xdAF5Ee0C...] 악성 패턴 탐지: hidden_fee, swap_fee_mechanism, hardcoded_router (risk_score=-32.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0xdAF5Ee0C51F8A0E20561d7948Af5bf6CCD5c4927",
+      "source_file": "0xdAF5Ee0C51F8A0E20561d7948Af5bf6CCD5c4927.sol",
+      "solidity_version": "^0.8.20",
+      "contract_names": [
+        "is",
+        "Context",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 3,
+        "swap_fee_mechanism": 2,
+        "hardcoded_router": 1,
+        "unrestricted_mint": 1,
+        "tx_origin_usage": 1
+      },
+      "legitimate_hits": {
+        "access_control": 22,
+        "event_logging": 3,
+        "interface_usage": 15
+      },
+      "malicious_score": 8,
+      "legitimate_score": 40,
+      "risk_score": -32,
+      "function_count": 84,
+      "total_lines": 1342,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "a02d0726",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0xdDF483B0",
+    "description": "[실제 컨트랙트 0xdDF483B0...] 악성 패턴 탐지: hidden_fee, sell_counter, max_wallet_limit (risk_score=31.0)",
+    "parameters": {
+      "amount": 320000,
+      "source_address": "0xdDF483B0D3df14cb73989D3053EfE618ee1447E9",
+      "source_file": "0xdDF483B0D3df14cb73989D3053EfE618ee1447E9.sol",
+      "solidity_version": "^0.8.23",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "ANGLE"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 15,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "swap_fee_mechanism": 9,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 8,
+        "event_logging": 6,
+        "interface_usage": 4
+      },
+      "malicious_score": 49,
+      "legitimate_score": 18,
+      "risk_score": 31,
+      "function_count": 41,
+      "total_lines": 749,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "6fd2bd2f",
+    "label": "ATTACK",
+    "scenario_type": "reserve_drain",
+    "name": "RealContract_0xdbCa6d0E",
+    "description": "[실제 컨트랙트 0xdbCa6d0E...] 악성 패턴 탐지: hidden_fee, swap_fee_mechanism, trading_lock (risk_score=-2.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0xdbCa6d0EDE269FC798726F7283589DE0Fd37DED3",
+      "source_file": "0xdbCa6d0EDE269FC798726F7283589DE0Fd37DED3.sol",
+      "solidity_version": "0.8.25",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "VGOD"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 8,
+        "trading_lock": 2,
+        "max_wallet_limit": 2,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1
+      },
+      "legitimate_hits": {
+        "access_control": 16,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 22,
+      "legitimate_score": 24,
+      "risk_score": -2,
+      "function_count": 46,
+      "total_lines": 771,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "c3952c70",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0xdf33c9f0",
+    "description": "[실제 컨트랙트 0xdf33c9f0...] 악성 패턴 탐지: unrestricted_mint (risk_score=-13.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0xdf33c9f0409cfEd7dE45F244579cc0f8F0D66d29",
+      "source_file": "0xdf33c9f0409cfEd7dE45F244579cc0f8F0D66d29.sol",
+      "solidity_version": "^0.8.27",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "ERC20"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 7,
+        "event_logging": 3,
+        "interface_usage": 4
+      },
+      "malicious_score": 1,
+      "legitimate_score": 14,
+      "risk_score": -13,
+      "function_count": 31,
+      "total_lines": 243,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "e620d5ae",
+    "label": "ATTACK",
+    "scenario_type": "infinite_mint",
+    "name": "RealContract_0xe1748b4e",
+    "description": "[실제 컨트랙트 0xe1748b4e...] 악성 패턴 탐지: hidden_fee, swap_fee_mechanism, hardcoded_router (risk_score=-32.0)",
+    "parameters": {
+      "amount": 10000,
+      "source_address": "0xe1748b4ea9335E80232011edca58dAc0fFA70665",
+      "source_file": "0xe1748b4ea9335E80232011edca58dAc0fFA70665.sol",
+      "solidity_version": "^0.8.20",
+      "contract_names": [
+        "is",
+        "Context",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 3,
+        "swap_fee_mechanism": 2,
+        "hardcoded_router": 1,
+        "unrestricted_mint": 1,
+        "tx_origin_usage": 1
+      },
+      "legitimate_hits": {
+        "access_control": 22,
+        "event_logging": 3,
+        "interface_usage": 15
+      },
+      "malicious_score": 8,
+      "legitimate_score": 40,
+      "risk_score": -32,
+      "function_count": 84,
+      "total_lines": 1340,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": true
+  },
+  {
+    "id": "72d688e3",
+    "label": "NORMAL",
+    "scenario_type": "liquidity_add",
+    "name": "RealContract_0x000D8AA9",
+    "description": "[실제 컨트랙트 0x000D8AA9...] 정상 패턴: oracle_integration, governance, interface_usage (legitimate_score=357)",
+    "parameters": {
+      "amount": 36700,
+      "source_address": "0x000D8AA9E414b9E7E7591A456CA910Fb3bb05875",
+      "source_file": "0x000D8AA9E414b9E7E7591A456CA910Fb3bb05875.sol",
+      "solidity_version": "^0.8.24",
+      "contract_names": [
+        "that",
+        "EulerUngovernedPerspective",
+        "before"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 24,
+        "event_logging": 18,
+        "reentrancy_guard": 15,
+        "interface_usage": 46,
+        "erc4626_vault": 34,
+        "oracle_integration": 123,
+        "governance": 82,
+        "factory_pattern": 15
+      },
+      "malicious_score": 1,
+      "legitimate_score": 357,
+      "risk_score": -356,
+      "function_count": 274,
+      "total_lines": 3415,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "a83a3818",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x05c0cc58",
+    "description": "[실제 컨트랙트 0x05c0cc58...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=17)",
+    "parameters": {
+      "amount": 2700,
+      "source_address": "0x05c0cc58629016C99E715E8fbC2211a248fEC7aE",
+      "source_file": "0x05c0cc58629016C99E715E8fbC2211a248fEC7aE.sol",
+      "solidity_version": "0.8.20",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "chai"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 11,
+        "trading_lock": 2,
+        "max_wallet_limit": 10,
+        "blacklist": 5,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 4,
+        "tx_origin_usage": 2
+      },
+      "legitimate_hits": {
+        "access_control": 9,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 44,
+      "legitimate_score": 17,
+      "risk_score": 27,
+      "function_count": 41,
+      "total_lines": 691,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "f787d981",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x05f22675",
+    "description": "[실제 컨트랙트 0x05f22675...] 정상 패턴: interface_usage, event_logging, reentrancy_guard (legitimate_score=7)",
+    "parameters": {
+      "amount": 1700,
+      "source_address": "0x05f226755b11cB3666340551EbBAa615CDFEFdD6",
+      "source_file": "0x05f226755b11cB3666340551EbBAa615CDFEFdD6.sol",
+      "solidity_version": "0.6.12",
+      "contract_names": [
+        "is",
+        "Context",
+        "Address"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "event_logging": 2,
+        "reentrancy_guard": 1,
+        "interface_usage": 4
+      },
+      "malicious_score": 1,
+      "legitimate_score": 7,
+      "risk_score": -6,
+      "function_count": 41,
+      "total_lines": 1433,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "203b7b99",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x0AD0FA76",
+    "description": "[실제 컨트랙트 0x0AD0FA76...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=38)",
+    "parameters": {
+      "amount": 4800,
+      "source_address": "0x0AD0FA76ebA71bbb4281851331f16d8633d31581",
+      "source_file": "0x0AD0FA76ebA71bbb4281851331f16d8633d31581.sol",
+      "solidity_version": "^0.8.10",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "ERC20"
+      ],
+      "malicious_hits": {
+        "trading_lock": 2,
+        "max_wallet_limit": 21,
+        "swap_fee_mechanism": 4,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "unrestricted_mint": 2
+      },
+      "legitimate_hits": {
+        "access_control": 16,
+        "event_logging": 15,
+        "interface_usage": 7
+      },
+      "malicious_score": 31,
+      "legitimate_score": 38,
+      "risk_score": -7,
+      "function_count": 104,
+      "total_lines": 980,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "d7cdfc9f",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x0F9540c4",
+    "description": "[실제 컨트랙트 0x0F9540c4...] 정상 패턴: access_control, interface_usage, event_logging (legitimate_score=48)",
+    "parameters": {
+      "amount": 5800,
+      "source_address": "0x0F9540c4E4845fFCE51E62602d50Af7082E6Be7a",
+      "source_file": "0x0F9540c4E4845fFCE51E62602d50Af7082E6Be7a.sol",
+      "solidity_version": "0.8.14",
+      "contract_names": [
+        "CyberRelayGate",
+        "returns",
+        "code"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "access_control": 20,
+        "event_logging": 10,
+        "reentrancy_guard": 1,
+        "interface_usage": 17
+      },
+      "malicious_score": 0,
+      "legitimate_score": 48,
+      "risk_score": -48,
+      "function_count": 78,
+      "total_lines": 1463,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "f6b7dd1f",
+    "label": "NORMAL",
+    "scenario_type": "normal_mint",
+    "name": "RealContract_0x0FFD8D39",
+    "description": "[실제 컨트랙트 0x0FFD8D39...] 정상 패턴: interface_usage, event_logging, governance (legitimate_score=29)",
+    "parameters": {
+      "amount": 3900,
+      "source_address": "0x0FFD8D39115e1F48EEcf68C92DF379917fcB0058",
+      "source_file": "0x0FFD8D39115e1F48EEcf68C92DF379917fcB0058.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "CircleIntegrationSetup",
+        "IMessageTransmitter",
+        "ITokenMinter"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "access_control": 3,
+        "event_logging": 6,
+        "reentrancy_guard": 1,
+        "interface_usage": 14,
+        "governance": 5
+      },
+      "malicious_score": 0,
+      "legitimate_score": 29,
+      "risk_score": -29,
+      "function_count": 93,
+      "total_lines": 1048,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "7ed2d928",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x0a3fA0e8",
+    "description": "[실제 컨트랙트 0x0a3fA0e8...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=15)",
+    "parameters": {
+      "amount": 2500,
+      "source_address": "0x0a3fA0e8C0050D11C98d9659b0ac12cC3164E9B4",
+      "source_file": "0x0a3fA0e8C0050D11C98d9659b0ac12cC3164E9B4.sol",
+      "solidity_version": "0.8.23",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "WHEEZY"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 9,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 5
+      },
+      "legitimate_hits": {
+        "access_control": 7,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 35,
+      "legitimate_score": 15,
+      "risk_score": 20,
+      "function_count": 42,
+      "total_lines": 769,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "6c1fbad0",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x0aE0292B",
+    "description": "[실제 컨트랙트 0x0aE0292B...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=17)",
+    "parameters": {
+      "amount": 2700,
+      "source_address": "0x0aE0292B45BB1C3Af5CDd364569f2875A1B9E684",
+      "source_file": "0x0aE0292B45BB1C3Af5CDd364569f2875A1B9E684.sol",
+      "solidity_version": "0.8.25",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "charlie"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 10,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 9,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 45,
+      "legitimate_score": 17,
+      "risk_score": 28,
+      "function_count": 39,
+      "total_lines": 691,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "2642bfc4",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x0b58b729",
+    "description": "[실제 컨트랙트 0x0b58b729...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=17)",
+    "parameters": {
+      "amount": 2700,
+      "source_address": "0x0b58b729D954727411808DD0DD7F4A0d62adF5c5",
+      "source_file": "0x0b58b729D954727411808DD0DD7F4A0d62adF5c5.sol",
+      "solidity_version": "0.8.24",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "CHIYO"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 15,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 8,
+        "event_logging": 5,
+        "interface_usage": 4
+      },
+      "malicious_score": 48,
+      "legitimate_score": 17,
+      "risk_score": 31,
+      "function_count": 40,
+      "total_lines": 352,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "618c34e7",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1AB1DcCe",
+    "description": "[실제 컨트랙트 0x1AB1DcCe...] 정상 패턴: access_control, interface_usage, event_logging (legitimate_score=33)",
+    "parameters": {
+      "amount": 4300,
+      "source_address": "0x1AB1DcCedE03667Db0Bd457E9A00baE59Ac4904C",
+      "source_file": "0x1AB1DcCedE03667Db0Bd457E9A00baE59Ac4904C.sol",
+      "solidity_version": "=0.8.27",
+      "contract_names": [
+        "is",
+        "Context",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "trading_lock": 2,
+        "max_wallet_limit": 8,
+        "blacklist": 3,
+        "swap_fee_mechanism": 6,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 20,
+        "event_logging": 4,
+        "interface_usage": 9
+      },
+      "malicious_score": 22,
+      "legitimate_score": 33,
+      "risk_score": -11,
+      "function_count": 102,
+      "total_lines": 2301,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "6ca7c441",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1C8582Bc",
+    "description": "[실제 컨트랙트 0x1C8582Bc...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=18)",
+    "parameters": {
+      "amount": 2800,
+      "source_address": "0x1C8582Bc4213fac47671DB5E9307d6Db93fBAe7E",
+      "source_file": "0x1C8582Bc4213fac47671DB5E9307d6Db93fBAe7E.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "Namie"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 10,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 4,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 4
+      },
+      "legitimate_hits": {
+        "access_control": 10,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 33,
+      "legitimate_score": 18,
+      "risk_score": 15,
+      "function_count": 41,
+      "total_lines": 635,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "96d3147b",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1Cc680Dd",
+    "description": "[실제 컨트랙트 0x1Cc680Dd...] 정상 패턴: access_control, interface_usage, event_logging (legitimate_score=68)",
+    "parameters": {
+      "amount": 7800,
+      "source_address": "0x1Cc680Dd076f8a4501847ca1bbFcb43f4BE7b8D9",
+      "source_file": "0x1Cc680Dd076f8a4501847ca1bbFcb43f4BE7b8D9.sol",
+      "solidity_version": "^0.8.20",
+      "contract_names": [
+        "MeowMeme",
+        "using",
+        "ERC20Upgradeable"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 2
+      },
+      "legitimate_hits": {
+        "access_control": 33,
+        "event_logging": 8,
+        "reentrancy_guard": 1,
+        "interface_usage": 26
+      },
+      "malicious_score": 2,
+      "legitimate_score": 68,
+      "risk_score": -66,
+      "function_count": 161,
+      "total_lines": 3033,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "d91759af",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1Cdd564a",
+    "description": "[실제 컨트랙트 0x1Cdd564a...] 정상 패턴: interface_usage, access_control, event_logging (legitimate_score=65)",
+    "parameters": {
+      "amount": 7500,
+      "source_address": "0x1Cdd564a93688A25B072e6A2CB67001C44dA87Ff",
+      "source_file": "0x1Cdd564a93688A25B072e6A2CB67001C44dA87Ff.sol",
+      "solidity_version": "^0.8.20",
+      "contract_names": [
+        "Ownable",
+        "setting",
+        "without"
+      ],
+      "malicious_hits": {
+        "max_wallet_limit": 6,
+        "hardcoded_router": 1,
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 25,
+        "event_logging": 10,
+        "interface_usage": 30
+      },
+      "malicious_score": 8,
+      "legitimate_score": 65,
+      "risk_score": -57,
+      "function_count": 207,
+      "total_lines": 3538,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "8960a356",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1D3a5C79",
+    "description": "[실제 컨트랙트 0x1D3a5C79...] 정상 패턴:  (legitimate_score=0)",
+    "parameters": {
+      "amount": 1000,
+      "source_address": "0x1D3a5C795cDaCE4d298ae5c7b7F632651b8ba10a",
+      "source_file": "0x1D3a5C795cDaCE4d298ae5c7b7F632651b8ba10a.sol",
+      "solidity_version": "^0.8.10",
+      "contract_names": [
+        "khhmm"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {},
+      "malicious_score": 0,
+      "legitimate_score": 0,
+      "risk_score": 0,
+      "function_count": 7,
+      "total_lines": 107,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "598fb1bc",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1DD9D496",
+    "description": "[실제 컨트랙트 0x1DD9D496...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=17)",
+    "parameters": {
+      "amount": 2700,
+      "source_address": "0x1DD9D49611BB580BaB15c8A900C7634c7A1142ED",
+      "source_file": "0x1DD9D49611BB580BaB15c8A900C7634c7A1142ED.sol",
+      "solidity_version": "^0.8.20",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "WEROBOT"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 10,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 9,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 45,
+      "legitimate_score": 17,
+      "risk_score": 28,
+      "function_count": 40,
+      "total_lines": 709,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "390618a3",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1Dff5847",
+    "description": "[실제 컨트랙트 0x1Dff5847...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=17)",
+    "parameters": {
+      "amount": 2700,
+      "source_address": "0x1Dff584781B646d8f9703c6c71433454438fd557",
+      "source_file": "0x1Dff584781B646d8f9703c6c71433454438fd557.sol",
+      "solidity_version": "0.8.25",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "ESTEE"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 10,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 9,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 45,
+      "legitimate_score": 17,
+      "risk_score": 28,
+      "function_count": 39,
+      "total_lines": 695,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "36d5c1c0",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1bD38797",
+    "description": "[실제 컨트랙트 0x1bD38797...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=18)",
+    "parameters": {
+      "amount": 2800,
+      "source_address": "0x1bD38797459EB989863E9951116E89Ae1605941a",
+      "source_file": "0x1bD38797459EB989863E9951116E89Ae1605941a.sol",
+      "solidity_version": "0.8.23",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "HIROSHI"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 12,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "blacklist": 5,
+        "swap_fee_mechanism": 9,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 9,
+        "event_logging": 5,
+        "interface_usage": 4
+      },
+      "malicious_score": 51,
+      "legitimate_score": 18,
+      "risk_score": 33,
+      "function_count": 41,
+      "total_lines": 687,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "dbd39f06",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1c33e621",
+    "description": "[실제 컨트랙트 0x1c33e621...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=19)",
+    "parameters": {
+      "amount": 2900,
+      "source_address": "0x1c33e62182caC9E651c5987ae05C481Be4265b99",
+      "source_file": "0x1c33e62182caC9E651c5987ae05C481Be4265b99.sol",
+      "solidity_version": "0.8.23",
+      "contract_names": [
+        "Context",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 15,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "blacklist": 5,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 10,
+        "event_logging": 5,
+        "interface_usage": 4
+      },
+      "malicious_score": 53,
+      "legitimate_score": 19,
+      "risk_score": 34,
+      "function_count": 42,
+      "total_lines": 725,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "82bef5fd",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1c43cD66",
+    "description": "[실제 컨트랙트 0x1c43cD66...] 정상 패턴: interface_usage, access_control, event_logging (legitimate_score=65)",
+    "parameters": {
+      "amount": 7500,
+      "source_address": "0x1c43cD666F22878ee902769FCCdA61F401814EFb",
+      "source_file": "0x1c43cD666F22878ee902769FCCdA61F401814EFb.sol",
+      "solidity_version": "^0.8.26",
+      "contract_names": [
+        "ERC6551Account",
+        "ERC6551Registry",
+        "let"
+      ],
+      "malicious_hits": {
+        "max_wallet_limit": 6,
+        "hardcoded_router": 1,
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "access_control": 25,
+        "event_logging": 10,
+        "interface_usage": 30
+      },
+      "malicious_score": 8,
+      "legitimate_score": 65,
+      "risk_score": -57,
+      "function_count": 208,
+      "total_lines": 3498,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "f0780965",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1c98c43c",
+    "description": "[실제 컨트랙트 0x1c98c43c...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=18)",
+    "parameters": {
+      "amount": 2800,
+      "source_address": "0x1c98c43cE8f4e4724C9e6a3d85Ef64Db25CFcD2c",
+      "source_file": "0x1c98c43cE8f4e4724C9e6a3d85Ef64Db25CFcD2c.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "TWEET"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 10,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 2,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 4
+      },
+      "legitimate_hits": {
+        "access_control": 10,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 31,
+      "legitimate_score": 18,
+      "risk_score": 13,
+      "function_count": 41,
+      "total_lines": 633,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "c8dc73f3",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x1cea1702",
+    "description": "[실제 컨트랙트 0x1cea1702...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=19)",
+    "parameters": {
+      "amount": 2900,
+      "source_address": "0x1cea17022b94766C45624805De9278103aC5235A",
+      "source_file": "0x1cea17022b94766C45624805De9278103aC5235A.sol",
+      "solidity_version": "^0.8.10",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "FOXES"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 10,
+        "trading_lock": 2,
+        "max_wallet_limit": 11,
+        "swap_fee_mechanism": 9,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 10,
+        "event_logging": 5,
+        "interface_usage": 4
+      },
+      "malicious_score": 46,
+      "legitimate_score": 19,
+      "risk_score": 27,
+      "function_count": 39,
+      "total_lines": 899,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "5eaf63be",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x2B41Ff2E",
+    "description": "[실제 컨트랙트 0x2B41Ff2E...] 정상 패턴: interface_usage, event_logging, reentrancy_guard (legitimate_score=8)",
+    "parameters": {
+      "amount": 1800,
+      "source_address": "0x2B41Ff2E1977Ef90b811A66291dD4F6263124227",
+      "source_file": "0x2B41Ff2E1977Ef90b811A66291dD4F6263124227.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "wallets",
+        "returns",
+        "to"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "event_logging": 2,
+        "reentrancy_guard": 1,
+        "interface_usage": 5
+      },
+      "malicious_score": 0,
+      "legitimate_score": 8,
+      "risk_score": -8,
+      "function_count": 57,
+      "total_lines": 786,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "fb14fe93",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x2B6c0e9C",
+    "description": "[실제 컨트랙트 0x2B6c0e9C...] 정상 패턴: access_control, interface_usage, event_logging (legitimate_score=68)",
+    "parameters": {
+      "amount": 7800,
+      "source_address": "0x2B6c0e9C25098fC81f996027272BE55EF04FDBDa",
+      "source_file": "0x2B6c0e9C25098fC81f996027272BE55EF04FDBDa.sol",
+      "solidity_version": "^0.8.20",
+      "contract_names": [
+        "MeowMeme",
+        "using",
+        "ERC20Upgradeable"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 2
+      },
+      "legitimate_hits": {
+        "access_control": 33,
+        "event_logging": 8,
+        "reentrancy_guard": 1,
+        "interface_usage": 26
+      },
+      "malicious_score": 2,
+      "legitimate_score": 68,
+      "risk_score": -66,
+      "function_count": 161,
+      "total_lines": 3033,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "467a8463",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x2a740aEC",
+    "description": "[실제 컨트랙트 0x2a740aEC...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=58)",
+    "parameters": {
+      "amount": 6800,
+      "source_address": "0x2a740aEC53D0D5388e0538Df5Da4Ea6EedC5a69A",
+      "source_file": "0x2a740aEC53D0D5388e0538Df5Da4Ea6EedC5a69A.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "is",
+        "Context",
+        "using"
+      ],
+      "malicious_hits": {
+        "max_wallet_limit": 16,
+        "swap_fee_mechanism": 3,
+        "unrestricted_mint": 2
+      },
+      "legitimate_hits": {
+        "access_control": 25,
+        "event_logging": 21,
+        "interface_usage": 12
+      },
+      "malicious_score": 21,
+      "legitimate_score": 58,
+      "risk_score": -37,
+      "function_count": 119,
+      "total_lines": 1165,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "8f529247",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x2a7822d6",
+    "description": "[실제 컨트랙트 0x2a7822d6...] 정상 패턴: interface_usage, event_logging, reentrancy_guard (legitimate_score=9)",
+    "parameters": {
+      "amount": 1900,
+      "source_address": "0x2a7822d6764dFc7a945A4c38776624cB542b32f6",
+      "source_file": "0x2a7822d6764dFc7a945A4c38776624cB542b32f6.sol",
+      "solidity_version": "0.8.22",
+      "contract_names": [
+        "VaultBeaconProxy",
+        "implements",
+        "BeaconProxy"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "event_logging": 3,
+        "reentrancy_guard": 1,
+        "interface_usage": 5
+      },
+      "malicious_score": 0,
+      "legitimate_score": 9,
+      "risk_score": -9,
+      "function_count": 34,
+      "total_lines": 655,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "76fc2268",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x2a879c62",
+    "description": "[실제 컨트랙트 0x2a879c62...] 정상 패턴: interface_usage (legitimate_score=1)",
+    "parameters": {
+      "amount": 1100,
+      "source_address": "0x2a879c62119DcA3601e54990F712F1bBf026612c",
+      "source_file": "0x2a879c62119DcA3601e54990F712F1bBf026612c.sol",
+      "solidity_version": "^0.8.13",
+      "contract_names": [
+        "BalanceChecker"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "interface_usage": 1
+      },
+      "malicious_score": 0,
+      "legitimate_score": 1,
+      "risk_score": -1,
+      "function_count": 2,
+      "total_lines": 39,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "e9f8888b",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x2c49064a",
+    "description": "[실제 컨트랙트 0x2c49064a...] 정상 패턴: access_control, interface_usage, event_logging (legitimate_score=25)",
+    "parameters": {
+      "amount": 3500,
+      "source_address": "0x2c49064a18e938542C168b5d82FD8683f08DA783",
+      "source_file": "0x2c49064a18e938542C168b5d82FD8683f08DA783.sol",
+      "solidity_version": ">=0.5.0",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "thedevisacat"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 18,
+        "max_wallet_limit": 6,
+        "blacklist": 5,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1
+      },
+      "legitimate_hits": {
+        "access_control": 16,
+        "event_logging": 4,
+        "interface_usage": 5
+      },
+      "malicious_score": 39,
+      "legitimate_score": 25,
+      "risk_score": 14,
+      "function_count": 58,
+      "total_lines": 1203,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "f23ad18b",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x4fDbe9fF",
+    "description": "[실제 컨트랙트 0x4fDbe9fF...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=48)",
+    "parameters": {
+      "amount": 5800,
+      "source_address": "0x4fDbe9fF39C87A7f2a9bFEd9DD4B8eaC9Bf35843",
+      "source_file": "0x4fDbe9fF39C87A7f2a9bFEd9DD4B8eaC9Bf35843.sol",
+      "solidity_version": "=0.8.10 >=0.8.10 >=0.8.0 <0.9.0",
+      "contract_names": [
+        "is",
+        "Context",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "trading_lock": 2,
+        "max_wallet_limit": 28,
+        "swap_fee_mechanism": 4,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "unrestricted_mint": 2,
+        "tx_origin_usage": 2
+      },
+      "legitimate_hits": {
+        "access_control": 25,
+        "event_logging": 14,
+        "interface_usage": 9
+      },
+      "malicious_score": 40,
+      "legitimate_score": 48,
+      "risk_score": -8,
+      "function_count": 105,
+      "total_lines": 2983,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "9ae610e4",
+    "label": "NORMAL",
+    "scenario_type": "normal_mint",
+    "name": "RealContract_0x5B5522CB",
+    "description": "[실제 컨트랙트 0x5B5522CB...] 정상 패턴: reentrancy_guard, interface_usage, event_logging (legitimate_score=71)",
+    "parameters": {
+      "amount": 8100,
+      "source_address": "0x5B5522CB9a05e0De88beD60Aa105b81B03fE99C5",
+      "source_file": "0x5B5522CB9a05e0De88beD60Aa105b81B03fE99C5.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "CircleIntegrationImplementation",
+        "address",
+        "is"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "access_control": 5,
+        "event_logging": 10,
+        "reentrancy_guard": 28,
+        "interface_usage": 19,
+        "governance": 9
+      },
+      "malicious_score": 0,
+      "legitimate_score": 71,
+      "risk_score": -71,
+      "function_count": 172,
+      "total_lines": 2694,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "eb1aad1b",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x5DA20C63",
+    "description": "[실제 컨트랙트 0x5DA20C63...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=16)",
+    "parameters": {
+      "amount": 2600,
+      "source_address": "0x5DA20C6375fBda0ec00713B80B426910C5A34003",
+      "source_file": "0x5DA20C6375fBda0ec00713B80B426910C5A34003.sol",
+      "solidity_version": "^0.8.19",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "MOOWAN"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 8,
+        "trading_lock": 2,
+        "max_wallet_limit": 6,
+        "blacklist": 2,
+        "swap_fee_mechanism": 4,
+        "hardcoded_router": 1,
+        "sell_counter": 4
+      },
+      "legitimate_hits": {
+        "access_control": 8,
+        "event_logging": 4,
+        "interface_usage": 4
+      },
+      "malicious_score": 27,
+      "legitimate_score": 16,
+      "risk_score": 11,
+      "function_count": 42,
+      "total_lines": 863,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "6d1b76bb",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x5DD73967",
+    "description": "[실제 컨트랙트 0x5DD73967...] 정상 패턴: interface_usage, event_logging (legitimate_score=7)",
+    "parameters": {
+      "amount": 1700,
+      "source_address": "0x5DD73967b4A2dbB5e026Ae2A0C335395e6563B0a",
+      "source_file": "0x5DD73967b4A2dbB5e026Ae2A0C335395e6563B0a.sol",
+      "solidity_version": "0.8.19",
+      "contract_names": [
+        "Starship",
+        "using",
+        "ERC20"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 2
+      },
+      "legitimate_hits": {
+        "event_logging": 2,
+        "interface_usage": 5
+      },
+      "malicious_score": 2,
+      "legitimate_score": 7,
+      "risk_score": -5,
+      "function_count": 31,
+      "total_lines": 530,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "89bd2991",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x5F86f6ac",
+    "description": "[실제 컨트랙트 0x5F86f6ac...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=18)",
+    "parameters": {
+      "amount": 2800,
+      "source_address": "0x5F86f6acC529297F472eE7833a550576D4D78Fd7",
+      "source_file": "0x5F86f6acC529297F472eE7833a550576D4D78Fd7.sol",
+      "solidity_version": "0.8.23",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "TEST"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 12,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "blacklist": 8,
+        "swap_fee_mechanism": 9,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 9,
+        "event_logging": 5,
+        "interface_usage": 4
+      },
+      "malicious_score": 54,
+      "legitimate_score": 18,
+      "risk_score": 36,
+      "function_count": 41,
+      "total_lines": 695,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "a6c8cee4",
+    "label": "NORMAL",
+    "scenario_type": "normal_mint",
+    "name": "RealContract_0x5a78852f",
+    "description": "[실제 컨트랙트 0x5a78852f...] 정상 패턴: interface_usage, event_logging, reentrancy_guard (legitimate_score=14)",
+    "parameters": {
+      "amount": 2400,
+      "source_address": "0x5a78852fC9246272E893C0189Db0214EBDCaB372",
+      "source_file": "0x5a78852fC9246272E893C0189Db0214EBDCaB372.sol",
+      "solidity_version": "^0.8.13",
+      "contract_names": [
+        "ConvexEscrowV2",
+        "balance",
+        "returns"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "event_logging": 3,
+        "reentrancy_guard": 1,
+        "interface_usage": 9,
+        "governance": 1
+      },
+      "malicious_score": 0,
+      "legitimate_score": 14,
+      "risk_score": -14,
+      "function_count": 50,
+      "total_lines": 689,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "db38cebb",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x5aF8e857",
+    "description": "[실제 컨트랙트 0x5aF8e857...] 정상 패턴: event_logging, interface_usage (legitimate_score=4)",
+    "parameters": {
+      "amount": 1400,
+      "source_address": "0x5aF8e857FC3Cc7fF0f8C2053F4179d5C2d4C38C4",
+      "source_file": "0x5aF8e857FC3Cc7fF0f8C2053F4179d5C2d4C38C4.sol",
+      "solidity_version": "^0.5.0",
+      "contract_names": [
+        "using",
+        "ERC20",
+        "TokenMintERC20Token"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 1
+      },
+      "legitimate_hits": {
+        "event_logging": 2,
+        "interface_usage": 2
+      },
+      "malicious_score": 1,
+      "legitimate_score": 4,
+      "risk_score": -3,
+      "function_count": 28,
+      "total_lines": 993,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "c48f4386",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x5ba5fe87",
+    "description": "[실제 컨트랙트 0x5ba5fe87...] 정상 패턴: access_control, interface_usage, event_logging (legitimate_score=22)",
+    "parameters": {
+      "amount": 3200,
+      "source_address": "0x5ba5fe875e089b9123380dae12Fdc76A5198d0B7",
+      "source_file": "0x5ba5fe875e089b9123380dae12Fdc76A5198d0B7.sol",
+      "solidity_version": "^0.8.22",
+      "contract_names": [
+        "Context",
+        "ERC20",
+        "Ownable"
+      ],
+      "malicious_hits": {
+        "max_wallet_limit": 3,
+        "swap_fee_mechanism": 6,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "unrestricted_mint": 1,
+        "sell_counter": 9
+      },
+      "legitimate_hits": {
+        "access_control": 13,
+        "event_logging": 3,
+        "interface_usage": 6
+      },
+      "malicious_score": 21,
+      "legitimate_score": 22,
+      "risk_score": -1,
+      "function_count": 48,
+      "total_lines": 418,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "10af1209",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x5cFA51a4",
+    "description": "[실제 컨트랙트 0x5cFA51a4...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=18)",
+    "parameters": {
+      "amount": 2800,
+      "source_address": "0x5cFA51a467D192212b0BC3EbDae3EBC909ceF8dC",
+      "source_file": "0x5cFA51a467D192212b0BC3EbDae3EBC909ceF8dC.sol",
+      "solidity_version": "0.8.23",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "Shib"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 12,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "blacklist": 5,
+        "swap_fee_mechanism": 9,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 9,
+        "event_logging": 5,
+        "interface_usage": 4
+      },
+      "malicious_score": 51,
+      "legitimate_score": 18,
+      "risk_score": 33,
+      "function_count": 41,
+      "total_lines": 689,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "6f19e8ae",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x5d19B526",
+    "description": "[실제 컨트랙트 0x5d19B526...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=19)",
+    "parameters": {
+      "amount": 2900,
+      "source_address": "0x5d19B5268Ef4bFF01108F505ca703238830c86f9",
+      "source_file": "0x5d19B5268Ef4bFF01108F505ca703238830c86f9.sol",
+      "solidity_version": "0.8.27",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "Contract"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 15,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "blacklist": 5,
+        "swap_fee_mechanism": 9,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 10,
+        "event_logging": 5,
+        "interface_usage": 4
+      },
+      "malicious_score": 54,
+      "legitimate_score": 19,
+      "risk_score": 35,
+      "function_count": 43,
+      "total_lines": 715,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "b5c9acd0",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x5d616FF4",
+    "description": "[실제 컨트랙트 0x5d616FF4...] 정상 패턴: access_control, interface_usage, event_logging (legitimate_score=48)",
+    "parameters": {
+      "amount": 5800,
+      "source_address": "0x5d616FF43F8f687003d414FEe0457C058dcf3C88",
+      "source_file": "0x5d616FF43F8f687003d414FEe0457C058dcf3C88.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "OwnableUpgradeable",
+        "setting",
+        "without"
+      ],
+      "malicious_hits": {
+        "unrestricted_mint": 2
+      },
+      "legitimate_hits": {
+        "access_control": 22,
+        "event_logging": 7,
+        "reentrancy_guard": 1,
+        "interface_usage": 18
+      },
+      "malicious_score": 2,
+      "legitimate_score": 48,
+      "risk_score": -46,
+      "function_count": 120,
+      "total_lines": 1919,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "a96d0aec",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x5e3E8691",
+    "description": "[실제 컨트랙트 0x5e3E8691...] 정상 패턴: access_control, interface_usage (legitimate_score=4)",
+    "parameters": {
+      "amount": 1400,
+      "source_address": "0x5e3E869191A37f73a1a005CD2FB3bfA07201aC9A",
+      "source_file": "0x5e3E869191A37f73a1a005CD2FB3bfA07201aC9A.sol",
+      "solidity_version": "^0.8.0",
+      "contract_names": [
+        "KeroppiGeneration",
+        "owner"
+      ],
+      "malicious_hits": {},
+      "legitimate_hits": {
+        "access_control": 3,
+        "interface_usage": 1
+      },
+      "malicious_score": 0,
+      "legitimate_score": 4,
+      "risk_score": -4,
+      "function_count": 6,
+      "total_lines": 71,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "203b7035",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x5e67e478",
+    "description": "[실제 컨트랙트 0x5e67e478...] 정상 패턴: access_control, interface_usage, event_logging (legitimate_score=54)",
+    "parameters": {
+      "amount": 6400,
+      "source_address": "0x5e67e4783c4b482e580Ac451Bae09e1Ad3A05EaB",
+      "source_file": "0x5e67e4783c4b482e580Ac451Bae09e1Ad3A05EaB.sol",
+      "solidity_version": "0.8.19",
+      "contract_names": [
+        "is",
+        "Context",
+        "using"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 6,
+        "owner_trading_control": 1,
+        "unrestricted_mint": 1,
+        "tx_origin_usage": 1
+      },
+      "legitimate_hits": {
+        "access_control": 30,
+        "event_logging": 7,
+        "interface_usage": 17
+      },
+      "malicious_score": 9,
+      "legitimate_score": 54,
+      "risk_score": -45,
+      "function_count": 60,
+      "total_lines": 1,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  },
+  {
+    "id": "3d1e01c2",
+    "label": "NORMAL",
+    "scenario_type": "normal_transfer",
+    "name": "RealContract_0x5e7c8852",
+    "description": "[실제 컨트랙트 0x5e7c8852...] 정상 패턴: access_control, event_logging, interface_usage (legitimate_score=17)",
+    "parameters": {
+      "amount": 2700,
+      "source_address": "0x5e7c8852bc11f2D9Bbb7FDb20E8d3e3311174f1c",
+      "source_file": "0x5e7c8852bc11f2D9Bbb7FDb20E8d3e3311174f1c.sol",
+      "solidity_version": "0.8.23",
+      "contract_names": [
+        "Context",
+        "Ownable",
+        "MAINE"
+      ],
+      "malicious_hits": {
+        "hidden_fee": 15,
+        "trading_lock": 2,
+        "max_wallet_limit": 9,
+        "blacklist": 2,
+        "swap_fee_mechanism": 8,
+        "hardcoded_router": 1,
+        "owner_trading_control": 1,
+        "sell_counter": 12
+      },
+      "legitimate_hits": {
+        "access_control": 8,
+        "event_logging": 5,
+        "interface_usage": 4
+      },
+      "malicious_score": 50,
+      "legitimate_score": 17,
+      "risk_score": 33,
+      "function_count": 40,
+      "total_lines": 687,
+      "is_real_contract": true
+    },
+    "network_condition": "normal",
+    "expected_detection": false
+  }
+]
