@@ -18,11 +18,15 @@ from .base import DetectionSystem, DetectionConfig, DetectionResponse
 # 조건부 임포트: 패키지 모드와 직접 실행 모드 지원
 try:
     from ..scenario import Scenario, ScenarioType, ScenarioLabel
+    from ..feature_extractor import extract_features
+    from ..anomaly_scorer import AnomalyScorer
 except ImportError:
     import sys
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from scenario import Scenario, ScenarioType, ScenarioLabel
+    from feature_extractor import extract_features
+    from anomaly_scorer import AnomalyScorer
 
 
 class ManualGovernanceSystem(DetectionSystem):
@@ -47,6 +51,11 @@ class ManualGovernanceSystem(DetectionSystem):
         if config:
             default_config.update(config)
         super().__init__("기존 수동 거버넌스", default_config)
+        # 단일 계층과 동일한 엔진 로드를 위해 AnomalyScorer 초기화
+        self._scorer = AnomalyScorer(method=default_config.get('anomaly_method', 'zscore'))
+        
+        # 공정 비교를 위해 FPR 변수 유지
+        self._current_fpr = default_config['false_positive_rate']
     
     def detect(self, scenario: Scenario) -> Tuple[str, float]:
         """
@@ -82,10 +91,12 @@ class ManualGovernanceSystem(DetectionSystem):
         base_latency_ms = (alert_sec + assess_sec) * 1000.0
         latency_ms = self._apply_congestion_latency(base_latency_ms, scenario.network_condition)
 
-        # 탐지 정확도
-        prediction = self._simulate_human_detection(scenario)
+        # 탐지 정확도 (단일 계층과 동일한 통계 피처 연산 알고리즘 사용)
+        prediction, applied_fpr, applied_threshold = self._run_detection_algorithms(scenario)
 
         self._record_detection(latency_ms)
+        self._last_applied_fpr = applied_fpr
+        self._last_applied_threshold = applied_threshold
         return (prediction, latency_ms)
     
     def detect_extended(self, scenario: Scenario) -> DetectionResponse:
@@ -145,6 +156,58 @@ class ManualGovernanceSystem(DetectionSystem):
             gas_details=gas_details
         )
     
+    def _run_detection_algorithms(self, scenario: Scenario) -> Tuple[str, float, float]:
+        """
+        단일 계층과 정확히 동일한 알고리즘을 수행합니다. 
+        차이는 레이턴시(속도)에만 있습니다.
+        """
+        import numpy as np
+        cfg = self.config
+
+        # 1) 피처 추출 및 통계적 이상 점수 (60% 비중)
+        features = extract_features(scenario)
+        anomaly_score = self._scorer.score(features)
+
+        # 2) 단일 토큰 검증 로직 점수 (40% 비중)
+        threshold_score = self._check_simple_threshold(scenario)
+
+        # 3) 앙상블
+        avg_score = anomaly_score * 0.60 + threshold_score * 0.40
+
+        # 4) FPR 연동 노이즈
+        if not scenario.is_attack():
+            noise_sigma    = self._current_fpr * 0.5
+            overload_noise = float(np.random.normal(loc=0.0, scale=noise_sigma))
+        else:
+            overload_noise = 0.0
+
+        # 5) 시스템 기본 불확실성 노이즈
+        base_noise  = float(np.random.normal(0.0, 0.03))
+        final_score = float(np.clip(avg_score + base_noise + overload_noise, 0.0, 1.0))
+
+        # 6) 동적 임계값: 단일 계층과 동일 (기본 FPR에 의존)
+        effective_threshold = max(0.50 - (self._current_fpr * 0.3), 0.30)
+
+        if final_score > effective_threshold:
+            return ('ATTACK', self._current_fpr, effective_threshold)
+        return ('NORMAL', self._current_fpr, effective_threshold)
+
+    def _check_simple_threshold(self, scenario: Scenario) -> float:
+        """
+        단순 금액 임계값 검사 (단일 계층과 동일)
+        """
+        import numpy as np
+        threshold = self.config.get('mint_threshold', 10000)  # 수동거버넌스에 없으면 기본값
+        amount    = scenario.parameters.get('amount',
+                    scenario.parameters.get('total_amount',
+                    scenario.parameters.get('loan_amount', 0)))
+
+        ratio = amount / (threshold + 1e-8)
+        if ratio > 1.0:
+            return float(np.clip(0.5 + 0.4 * (1.0 - 1.0 / ratio), 0.0, 0.95))
+        else:
+            return float(np.clip(ratio * 0.15, 0.0, 0.15))
+
     def _simulate_human_detection(self, scenario: Scenario) -> str:
         """인간 탐지 능력 시뮬레이션"""
         actual_is_attack = scenario.is_attack()
