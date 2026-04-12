@@ -78,14 +78,9 @@ class ManualGovernanceSystem(DetectionSystem):
             cfg['situation_assess_min_sec'], cfg['situation_assess_max_sec']
         ) * complexity_multiplier
 
-        # 네트워크 혼잡 시 추가 지연
-        cong_mult = 1.0
-        if scenario.network_condition == 'congested':
-            cong_mult = 1.3
-        elif scenario.network_condition == 'severe':
-            cong_mult = 1.8
-
-        latency_ms = (alert_sec + assess_sec) * 1000.0 * cong_mult
+        # 네트워크 혼잡도 적용 (Log-Normal 분포, v4)
+        base_latency_ms = (alert_sec + assess_sec) * 1000.0
+        latency_ms = self._apply_congestion_latency(base_latency_ms, scenario.network_condition)
 
         # 탐지 정확도
         prediction = self._simulate_human_detection(scenario)
@@ -120,34 +115,18 @@ class ManualGovernanceSystem(DetectionSystem):
         response_action = 'none'
 
         if detected_as_attack:
-            cfg = self.config
-            # ③ 컨트랙트 pause 실행 시간
-            pause_sec = random.uniform(
-                cfg['contract_pause_min_sec'], cfg['contract_pause_max_sec']
-            )
-            # ④ 조사·복구 시간
-            recovery_sec = random.uniform(
-                cfg['recovery_min_sec'], cfg['recovery_max_sec']
-            )
-            service_downtime_sec = pause_sec + recovery_sec
-
-            # 네트워크 혼잡 → 복구 추가 지연
-            if scenario.network_condition == 'congested':
-                service_downtime_sec *= 1.3
-            elif scenario.network_condition == 'severe':
-                service_downtime_sec *= 1.8
-
-            micro_available = False
-            freeze_scope = 'full_network'
-            response_action = 'pause_all'
+            # 수동 분석이 완료된 시점에 해당 지갑만 제재 (다운타임 없음)
+            micro_available = True
+            freeze_scope = 'selective'
+            response_action = 'freeze_wallet'
         
         # 가스 소비량 (수동 대응 오버헤드)
         gas_details = {}
         if detected_as_attack:
             gas_details = {
-                'signature_verification': 0.0,   # 거버넌스 투표는 오프체인
-                'pause': 45000.0,                # 비효율적 수동 긴급정지
-                'blacklist_addition': 65000.0    # SSTORE 오버헤드
+                'signature_verification': 0.0,
+                'pause': 0.0,
+                'blacklist_addition': 65000.0    # 블랙리스트 추가 오버헤드만 남음
             }
 
         return DetectionResponse(

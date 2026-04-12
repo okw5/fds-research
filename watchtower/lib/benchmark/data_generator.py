@@ -96,6 +96,33 @@ class BenchmarkDataGenerator:
             expected_detection=True
         )
     
+    def generate_burst_attacks(self, network: str = "normal") -> List[Scenario]:
+        """
+        큰 취약점 발생 시 대규모 연쇄 공격(Burst) 패턴 생성 — 3~8연속 공격.
+        시간상 연속적으로 발생하므로 단일 거래 거부(Freeze)만으로 대응 시
+        네트워크 혼잡에 따른 누락 혹은 지연으로 대규모 피해가 누적될 수 있습니다.
+        """
+        burst_size = random.randint(3, 8)
+        burst_scenarios = []
+        for i in range(burst_size):
+            amount = random.randint(3_000_000, 15_000_000)
+            burst_scenarios.append(Scenario(
+                label=ScenarioLabel.ATTACK,
+                scenario_type=ScenarioType.RESERVE_DRAIN,
+                name=f"취약점 연쇄 공격 (Burst {i+1}/{burst_size})",
+                description=f"동일 취약점 반복 악용, {amount:,} 탈취 (Burst)",
+                parameters={
+                    'amount': amount,
+                    'method': 'vault_exploit',
+                    'target': 'vault',
+                    'is_burst': True,
+                    'burst_index': i
+                },
+                network_condition=network,
+                expected_detection=True
+            ))
+        return burst_scenarios
+    
     def generate_reserve_drain_attack(self,
                                       amount_range: tuple = (10, 5000),
                                       network: str = "normal") -> Scenario:
@@ -468,6 +495,14 @@ class BenchmarkDataGenerator:
         
         if shuffle:
             random.shuffle(dataset)
+
+        # 연쇄 공격(Burst)은 셔플 이후에 묶음으로 파고들어야 시간상 연속성이 유지됩니다.
+        burst_count = max(1, int(total_count * 0.05 / 5))  # 총 트랜잭션의 약 5%를 Burst에 할당
+        for _ in range(burst_count):
+            net = random.choice(['normal', 'congested', 'severe']) if network_mix else 'normal'
+            burst = self.generate_burst_attacks(network=net)
+            insert_idx = random.randint(0, len(dataset))
+            dataset[insert_idx:insert_idx] = burst
         
         return dataset
     

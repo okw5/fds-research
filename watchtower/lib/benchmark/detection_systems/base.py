@@ -3,6 +3,7 @@ DetectionSystem 추상 베이스 클래스
 모든 탐지 시스템이 구현해야 하는 인터페이스 정의
 
 v3: 지수 증가 피해 모델, Macro 공격 후 Micro 2차 피해 추적 추가
+v4: 네트워크 혼잡도 latency 모델을 Log-Normal 분포로 교체
 """
 
 import math
@@ -13,11 +14,13 @@ from dataclasses import dataclass, field
 # 조건부 임포트: 패키지 모드와 직접 실행 모드 지원
 try:
     from ..scenario import Scenario, ScenarioType, ScenarioLabel
+    from ..network_noise import NetworkNoiseInjector
 except ImportError:
     import sys
     import os
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from scenario import Scenario, ScenarioType, ScenarioLabel
+    from network_noise import NetworkNoiseInjector
 
 
 @dataclass
@@ -186,6 +189,24 @@ class DetectionSystem(ABC):
         """
         return (self.DAILY_NORMAL_VOLUME_USD / 86400.0) * service_downtime_sec
     
+    def _apply_congestion_latency(
+        self, base_latency_ms: float, network_condition: str
+    ) -> float:
+        """
+        네트워크 혼잡도에 따른 latency 보정 (개선 v4).
+
+        단순 상수 곱셈(x1.5, x1.8) 대신 Log-Normal 분포에서 승수를 샘플링:
+            multiplier = LogNormal(log(severity_factor), sigma)
+
+        혼잡이 심할수록 평균이 높아지고 분산도 크게 증가하여
+        불규칙한 멤풀 지연을 현실적으로 재현합니다.
+
+        단위 테스트:
+            lat = self._apply_congestion_latency(350, 'normal')
+            assert 290 < lat < 450   (±20% 내외)
+        """
+        return NetworkNoiseInjector.sample_latency_multiplier(network_condition) * base_latency_ms
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name='{self.name}')"
 

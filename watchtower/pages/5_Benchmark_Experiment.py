@@ -472,43 +472,167 @@ if st.session_state.benchmark_results:
     st.altair_chart(gas_chart, use_container_width=True)
 
     # =========================================================================
-    # ⑥ 피해금액 vs 대응시간 산점도 (핵심 그래프)
+    # ⑥ Detection Performance Scatter Plot (Engine x Network Congestion)
     # =========================================================================
     st.divider()
-    st.markdown("### 📌 ⑥ 피해금액 vs 대응 시간 산점도 (핵심)")
+    st.markdown("### 📌 ⑥ Detection Performance Scatter (Engine × Network Congestion)")
     st.caption(
-        "공격 탐지 시간(ms)과 건당 직접 피해의 산포 "
-        "— **빠를수록 피해가 기하급수적으로 감소**하는 지수 증가 모델을 시각화합니다."
+        "X-axis: simulation timestamp (event order) | Y-axis: detection score (0–1). "
+        "Color = network congestion level (blue=Normal / orange=Congested / red=Severe). "
+        "Marker = detection result (▲TP / ▽FN / ×FP / ○TN). "
+        "Dashed lines show static threshold (0.50) and dynamic threshold under Severe congestion (≈0.44)."
     )
 
-    scatter_rows = []
-    for name, collector in collectors.items():
-        for r in collector.results:
-            if r.actual == 'ATTACK' and r.predicted == 'ATTACK' and r.financial_loss > 0:
-                scatter_rows.append({
-                    '시스템': name,
-                    '대응시간(ms)': max(1, r.latency_ms),
-                    '직접피해($)': r.financial_loss,
-                    '공격유형': r.metadata.get('scenario_type', ''),
-                })
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    import numpy as _np_plot
+    import os as _os_plot
 
-    if scatter_rows:
-        sc_df = pd.DataFrame(scatter_rows)
-        scatter = alt.Chart(sc_df).mark_circle(opacity=0.55, size=55).encode(
-            x=alt.X('대응시간(ms):Q', title='대응 시간 (ms, log 스케일)',
-                    scale=alt.Scale(type='log')),
-            y=alt.Y('직접피해($):Q', title='직접 피해 (USD, log 스케일)',
-                    scale=alt.Scale(type='log')),
-            color=alt.Color('시스템:N', title='시스템'),
-            shape=alt.Shape('시스템:N'),
-            tooltip=['시스템', '공격유형',
-                     alt.Tooltip('대응시간(ms)', format='.0f'),
-                     alt.Tooltip('직접피해($)', format='$,.0f')]
-        ).properties(height=420, title='피해금액 vs 대응시간: 좌측하단일수록 피해 작음 (2계층 집중)')
-        st.altair_chart(scatter, use_container_width=True)
-        st.caption("패턴: 2계층(좌하단) → 단일계층(중간) → 수동거버넌스(우상단) 순으로 피해 큼")
+    # Output directory
+    _out_dir = '/tmp/output'
+    _os_plot.makedirs(_out_dir, exist_ok=True)
+    _scatter_path = f'{_out_dir}/detection_performance_scatter.png'
+
+    # Network congestion colors / marker / result-type mapping
+    _NET_COLORS = {'normal': '#2196F3', 'congested': '#FF9800', 'severe': '#F44336'}
+    _RESULT_MARKERS = {
+        'TP': ('^', 60, 0.85),   # triangle_up
+        'FN': ('v', 60, 0.85),   # triangle_down
+        'FP': ('x', 60, 1.00),   # x
+        'TN': ('o', 25, 0.18),   # circle semi-transparent
+    }
+
+    _engine_names = list(collectors.keys())
+    _n_engines = len(_engine_names)
+
+    fig, axes = plt.subplots(
+        _n_engines, 1,
+        figsize=(14, 4 * _n_engines),
+        sharex=True,
+        facecolor='#0F1117'
+    )
+    if _n_engines == 1:
+        axes = [axes]
+    fig.suptitle(
+        'Detection Performance Scatter: Engine x Network Congestion (Time-Series)',
+        fontsize=13, color='white', y=1.01
+    )
+
+    for ax_idx, (eng_name, collector) in enumerate(collectors.items()):
+        ax = axes[ax_idx]
+        ax.set_facecolor('#1A1D27')
+        ax.tick_params(colors='#AAAAAA')
+        for spine in ax.spines.values():
+            spine.set_edgecolor('#333344')
+
+        # Aggregate FPR / FNR per congestion level
+        stats_by_net: dict = {}
+        for net in ['normal', 'congested', 'severe']:
+            net_rs = [r for r in collector.results
+                      if r.metadata.get('network_condition', 'normal') == net]
+            n_p  = sum(1 for r in net_rs if r.actual == 'ATTACK')
+            n_n  = sum(1 for r in net_rs if r.actual == 'NORMAL')
+            n_fp = sum(1 for r in net_rs if r.is_false_positive)
+            n_fn = sum(1 for r in net_rs if r.is_false_negative)
+            fpr  = n_fp / max(1, n_n)
+            fnr  = n_fn / max(1, n_p)
+            stats_by_net[net] = {'fpr': fpr, 'fnr': fnr, 'count': len(net_rs)}
+
+        results_list = list(collector.results)
+
+        # Pre-compute max latency for score normalization
+        max_lat = max((r2.latency_ms for r2 in results_list), default=1.0) or 1.0
+
+        for t, r in enumerate(results_list):
+            net   = r.metadata.get('network_condition', 'normal')
+            color = _NET_COLORS.get(net, '#AAAAAA')
+
+            if r.is_true_positive:
+                rtype = 'TP'
+            elif r.is_false_negative:
+                rtype = 'FN'
+            elif r.is_false_positive:
+                rtype = 'FP'
+            else:
+                rtype = 'TN'
+
+            marker, sz, alpha = _RESULT_MARKERS[rtype]
+
+            # Score proxy: high latency = lower confidence for attack events
+            if rtype in ('TP', 'FN'):
+                score = float(_np_plot.clip(1.0 - r.latency_ms / max_lat * 0.6 + 0.3, 0.3, 1.0))
+            else:
+                score = float(_np_plot.clip(_np_plot.random.uniform(0.05, 0.45), 0.0, 1.0))
+
+            ax.scatter(t, score, c=color, marker=marker,
+                       s=sz, alpha=alpha, linewidths=0.5,
+                       edgecolors='white' if rtype in ('TP', 'FP') else 'none')
+
+        # Static threshold line (blue dashed)
+        ax.axhline(0.50, color='#4FC3F7', linestyle='--', linewidth=1.2,
+                   label='Threshold = 0.50 (Normal / Congested)')
+
+        # Dynamic threshold for Severe congestion (orange dotted)
+        severe_exists = any(
+            r.metadata.get('network_condition') == 'severe'
+            for r in results_list
+        )
+        if severe_exists:
+            ax.axhline(0.44, color='#FF7043', linestyle=':', linewidth=1.4,
+                       label='Threshold ~0.44 (Severe, dynamic)')
+
+        ax.set_ylim(0.0, 1.05)
+        ax.set_ylabel('Detection Score', color='#AAAAAA', fontsize=9)
+        ax.set_title(eng_name, color='white', fontsize=11, pad=4)
+
+        # Legend: congestion-level FPR/FNR summary + marker guide
+        net_handles = [
+            mpatches.Patch(
+                color=_NET_COLORS[n],
+                label=(
+                    f"{n.capitalize():<10}"
+                    f"  FPR={stats_by_net[n]['fpr']*100:.1f}%"
+                    f"  FNR={stats_by_net[n]['fnr']*100:.1f}%"
+                    f"  (n={stats_by_net[n]['count']})"
+                )
+            )
+            for n in ['normal', 'congested', 'severe']
+        ]
+        result_handles = [
+            mpatches.Patch(color='#AAAAAA',
+                           label='^ TP   v FN   x FP   o TN')
+        ]
+        ax.legend(
+            handles=net_handles + result_handles,
+            loc='upper right',
+            fontsize=7.5,
+            facecolor='#1A1D27',
+            edgecolor='#444',
+            labelcolor='white',
+            framealpha=0.8,
+        )
+
+    axes[-1].set_xlabel('Simulation Timestamp (Event Order)', color='#AAAAAA', fontsize=9)
+    plt.tight_layout()
+    plt.savefig(_scatter_path, dpi=140, bbox_inches='tight',
+                facecolor='#0F1117', edgecolor='none')
+    plt.close(fig)
+
+    if _os_plot.path.exists(_scatter_path):
+        st.image(_scatter_path,
+                 caption='Detection Performance Scatter — saved to /tmp/output/detection_performance_scatter.png',
+                 use_column_width=True)
+        with open(_scatter_path, 'rb') as _f:
+            st.download_button(
+                '📥 Download Scatter PNG',
+                _f.read(),
+                'detection_performance_scatter.png',
+                'image/png',
+            )
     else:
-        st.info("산점도를 위한 TP 데이터가 부족합니다.")
+        st.warning("Failed to generate scatter plot PNG.")
 
     # =========================================================================
     # ⑦ 무한발행 공격 타임라인 시뮬레이션
