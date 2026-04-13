@@ -112,9 +112,13 @@ class FDSTwoLayerSystem(DetectionSystem):
         leaked_tokens = 0.0
 
         if detected_as_attack and is_macro and scenario.is_attack():
-            attack_amount = float(scenario.parameters.get(
-                'amount', scenario.parameters.get(
-                    'total_amount', scenario.parameters.get('loan_amount', 0))))
+            attack_amount = float(scenario.parameters.get('amount_per_block',
+                                  scenario.parameters.get('amount_per_wallet',
+                                  scenario.parameters.get('amount_per_recipient',
+                                  scenario.parameters.get('start_amount',
+                                  scenario.parameters.get('amount',
+                                  scenario.parameters.get('loan_amount',
+                                  scenario.parameters.get('total_amount', 0))))))))
 
             is_catastrophic = (
                 scenario.scenario_type in {
@@ -145,8 +149,13 @@ class FDSTwoLayerSystem(DetectionSystem):
         response_action  = 'none'
 
         if detected_as_attack:
-            amount = scenario.parameters.get('amount',
-                     scenario.parameters.get('total_amount', 0))
+            amount = float(scenario.parameters.get('amount_per_block',
+                           scenario.parameters.get('amount_per_wallet',
+                           scenario.parameters.get('amount_per_recipient',
+                           scenario.parameters.get('start_amount',
+                           scenario.parameters.get('amount',
+                           scenario.parameters.get('loan_amount',
+                           scenario.parameters.get('total_amount', 0))))))))
 
             if is_macro:
                 is_catastrophic_flag = (
@@ -216,9 +225,13 @@ class FDSTwoLayerSystem(DetectionSystem):
 
     def _is_macro_transaction(self, scenario: Scenario) -> bool:
         """거래가 Macro 계층에 속하는지 판단"""
-        amount = scenario.parameters.get('amount',
-                 scenario.parameters.get('total_amount',
-                 scenario.parameters.get('loan_amount', 0)))
+        amount = float(scenario.parameters.get('amount_per_block',
+                       scenario.parameters.get('amount_per_wallet',
+                       scenario.parameters.get('amount_per_recipient',
+                       scenario.parameters.get('start_amount',
+                       scenario.parameters.get('amount',
+                       scenario.parameters.get('loan_amount',
+                       scenario.parameters.get('total_amount', 0))))))))
 
         if amount >= 1_000_000:
             return True
@@ -227,7 +240,6 @@ class FDSTwoLayerSystem(DetectionSystem):
             ScenarioType.INFINITE_MINT,
             ScenarioType.RESERVE_DRAIN,
             ScenarioType.FLASH_LOAN_DEPEG,
-            ScenarioType.SYBIL_ATTACK,
             ScenarioType.LIQUIDITY_ADD,
         }
         return scenario.scenario_type in macro_types
@@ -295,37 +307,57 @@ class FDSTwoLayerSystem(DetectionSystem):
         """
         엄격한 임계값 검사 (Macro 전용 보조 점수)
         거래 금액과 임계값의 비율로부터 점수를 산출.
-        확률 상수 없이 금액 비율에 따른 연속 점수.
-        """
-        macro_threshold = self.config['macro_threshold']
-        amount = scenario.parameters.get('amount',
-                 scenario.parameters.get('total_amount',
-                 scenario.parameters.get('loan_amount', 0)))
+        Ground Truth 레이블 참조 없이 금액 비율에만 의존하는 연속 점수.
 
-        if scenario.is_attack():
-            ratio = amount / (macro_threshold + 1e-8)
-            # 비율이 클수록 점수 증가 (sigmoid로 완만하게)
-            import math
-            return float(np.clip(1.0 / (1.0 + math.exp(-(ratio - 1.0))), 0.0, 1.0))
+        ▶ 임계값 초과 시: sigmoid로 연속적으로 상승 (거액 거래도 높은 점수)
+        ▶ 임계값 미만 시: 비율 × 0.15 (proportional, 최대 0.15)
+
+        주의: 정상 고액 거래도 이 점수는 높게 나올 수 있으나,
+              anomaly_score (50%) 및 sig_score (30%)가 낮으면 최종 판정 NORMAL.
+        """
+        import math
+        macro_threshold = self.config['macro_threshold']
+        amount = float(scenario.parameters.get('amount_per_block',
+                       scenario.parameters.get('amount_per_wallet',
+                       scenario.parameters.get('amount_per_recipient',
+                       scenario.parameters.get('start_amount',
+                       scenario.parameters.get('amount',
+                       scenario.parameters.get('loan_amount',
+                       scenario.parameters.get('total_amount', 0))))))))
+
+        # 화이트리스트 검사 통과 시 임계값 점수 강제 0 부여 (정상 플래시론 등 오탐 완전 차단)
+        if scenario.parameters.get('is_whitelisted', False):
+            return 0.0
+
+        ratio = amount / (macro_threshold + 1e-8)
+        if ratio >= 1.0:
+            # 임계값 초과: sigmoid 기반 연속 점수 (0.5~0.95)
+            return float(np.clip(1.0 / (1.0 + math.exp(-(ratio - 1.0))), 0.0, 0.95))
         else:
-            # 정상 거래: 금액이 임계값의 2배 이상이어도 낮은 점수
-            ratio = amount / (macro_threshold * 2.0 + 1e-8)
-            return float(np.clip(ratio * 0.15, 0.0, 0.20))
+            # 임계값 미만: 비율 비례 낮은 점수 (0.0~0.15)
+            return float(np.clip(ratio * 0.15, 0.0, 0.15))
 
     def _check_signature_validity(self, scenario: Scenario) -> float:
         """
         서명/권한 검증 (Macro의 핵심 보조 점수)
         2계층의 Macro는 사전 서명이 필요 — 공격은 서명 없이 시도.
 
-        반환값은 확률 상수가 아니라 논리적 점수 (0.0=정상, ~0.9=서명 없음)
+        ▶ scenario.parameters['has_valid_signature']  (data_generator에서 확률적 결정)
+           - 일반 공격:   5% 확률로 True (우연 서명 통과)
+           - CAMOUFLAGE: 70% 확률로 True (서명 위조 성공)
+           - 정상 거래:  True (항상 유효)
+
+        반환 점수:
+           has_valid_signature=True  → 0.05 (유효 서명: 낮은 의심도)
+           has_valid_signature=False → 0.90 (서명 없음: 높은 의심도)
+           is_whitelisted=True       → 0.02 (화이트리스트: 가장 낮은 의심도)
+
+        ⚠️  scenario.is_attack() 직접 조회 제거 — Data Leakage 해소
         """
-        if scenario.is_attack():
-            if scenario.scenario_type == ScenarioType.CAMOUFLAGE:
-                # 위장 공격: 서명은 있으나 컨텍스트 불일치 → 중간 점수
-                return 0.42
-            # 대부분의 공격: 유효 서명 없음 → 높은 점수
-            return 0.90
-        else:
-            if scenario.parameters.get('is_whitelisted', False):
-                return 0.02  # 화이트리스트 주소: 매우 낮은 점수
-            return 0.05      # 정상 서명: 낮은 점수
+        if scenario.parameters.get('is_whitelisted', False):
+            return 0.02   # 화이트리스트 주소: 가장 낮은 의심도
+
+        has_valid_sig = scenario.parameters.get('has_valid_signature', True)
+        if has_valid_sig:
+            return 0.05   # 유효한 서명: 낮은 의심도
+        return 0.90       # 서명 없음: 높은 의심도

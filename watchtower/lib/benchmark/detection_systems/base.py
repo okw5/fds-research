@@ -171,8 +171,16 @@ class DetectionSystem(ABC):
         velocity = self.ATTACK_VELOCITY.get(s_type, 0.05)
 
         if not detected:
-            # 미탐(FN): 수동 대응 시간(~300초)까지 공격이 진행된 것으로 가정
-            effective_latency_sec = 300.0
+            # 미탐(FN): 혼잡도에 따라 수동 대응 시간이 늘어남
+            # normal: 5분, congested: 10분, severe: 30분
+            MANUAL_RESPONSE_BY_NETWORK = {
+                'normal':    300.0,
+                'congested': 600.0,
+                'severe':    1800.0,
+            }
+            effective_latency_sec = MANUAL_RESPONSE_BY_NETWORK.get(
+                getattr(scenario, 'network_condition', 'normal'), 300.0
+            )
         else:
             effective_latency_sec = latency_ms / 1000.0
 

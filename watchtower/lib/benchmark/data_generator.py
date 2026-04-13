@@ -54,6 +54,21 @@ class BenchmarkDataGenerator:
     # 공격 시나리오 생성
     # =========================================================================
     
+    @staticmethod
+    def _attack_signature(scenario_type=None, evasion_chance: float = 0.05) -> bool:
+        """
+        공격 시나리오의 서명 유효성을 확률적으로 결정.
+
+        - CAMOUFLAGE: 70% 확률로 서명 위조 성공(True) → 위장 공격이 어려운 이유
+        - 일반 공격:  5% 확률로 우연히 서명 통과(True) → 극소수 FN 자연 발생
+
+        이 파라미터를 탐지 엔진이 scenario.is_attack() 대신 참조하면
+        Ground Truth 직접 조회(Data Leakage)가 제거됩니다.
+        """
+        if scenario_type == ScenarioType.CAMOUFLAGE:
+            return random.random() < 0.70   # 위장 공격: 70% 서명 위조
+        return random.random() < evasion_chance  # 일반 공격: 5% 우연 통과
+
     def generate_infinite_mint_attack(self, 
                                       amount_range: tuple = (100_000, 5_000_000),
                                       network: str = "normal") -> Scenario:
@@ -67,7 +82,8 @@ class BenchmarkDataGenerator:
             parameters={
                 'amount': amount,
                 'method': 'direct_mint',
-                'blocks': 1
+                'blocks': 1,
+                'has_valid_signature': self._attack_signature(ScenarioType.INFINITE_MINT),
             },
             network_condition=network,
             expected_detection=True
@@ -90,7 +106,8 @@ class BenchmarkDataGenerator:
                 'amount': amount,
                 'method': 'direct_mint',
                 'blocks': 1,
-                'is_catastrophic': True   # 2계층에서 Micro 2차 피해 활성화 플래그
+                'is_catastrophic': True,
+                'has_valid_signature': self._attack_signature(ScenarioType.INFINITE_MINT),
             },
             network_condition=network,
             expected_detection=True
@@ -99,8 +116,6 @@ class BenchmarkDataGenerator:
     def generate_burst_attacks(self, network: str = "normal") -> List[Scenario]:
         """
         큰 취약점 발생 시 대규모 연쇄 공격(Burst) 패턴 생성 — 3~8연속 공격.
-        시간상 연속적으로 발생하므로 단일 거래 거부(Freeze)만으로 대응 시
-        네트워크 혼잡에 따른 누락 혹은 지연으로 대규모 피해가 누적될 수 있습니다.
         """
         burst_size = random.randint(3, 8)
         burst_scenarios = []
@@ -116,7 +131,8 @@ class BenchmarkDataGenerator:
                     'method': 'vault_exploit',
                     'target': 'vault',
                     'is_burst': True,
-                    'burst_index': i
+                    'burst_index': i,
+                    'has_valid_signature': self._attack_signature(ScenarioType.RESERVE_DRAIN),
                 },
                 network_condition=network,
                 expected_detection=True
@@ -136,7 +152,8 @@ class BenchmarkDataGenerator:
             parameters={
                 'amount': amount,
                 'method': 'vault_exploit',
-                'target': 'vault'
+                'target': 'vault',
+                'has_valid_signature': self._attack_signature(ScenarioType.RESERVE_DRAIN),
             },
             network_condition=network,
             expected_detection=True
@@ -147,7 +164,6 @@ class BenchmarkDataGenerator:
                                    network: str = "normal") -> Scenario:
         """플래시론 디페깅 공격 시나리오 생성"""
         loan_amount = random.randint(*loan_range)
-        # 론 규모에 따른 예상 디페그 정도 계산
         depeg_percent = min(35, 8 + (loan_amount / 10_000_000) * 3)
         return Scenario(
             label=ScenarioLabel.ATTACK,
@@ -157,7 +173,8 @@ class BenchmarkDataGenerator:
             parameters={
                 'loan_amount': loan_amount,
                 'expected_depeg': depeg_percent,
-                'method': 'dex_manipulation'
+                'method': 'dex_manipulation',
+                'has_valid_signature': self._attack_signature(ScenarioType.FLASH_LOAN_DEPEG),
             },
             network_condition=network,
             expected_detection=True
@@ -180,10 +197,11 @@ class BenchmarkDataGenerator:
                 'amount_per_block': amount_per_block,
                 'total_amount': total_amount,
                 'blocks': blocks,
-                'evasion_ratio': evasion_ratio
+                'evasion_ratio': evasion_ratio,
+                'has_valid_signature': self._attack_signature(ScenarioType.THRESHOLD_EVASION),
             },
             network_condition=network,
-            expected_detection=True  # 누적 탐지로 잡아야 함
+            expected_detection=True
         )
     
     def generate_sybil_attack(self,
@@ -200,10 +218,11 @@ class BenchmarkDataGenerator:
             parameters={
                 'wallet_count': wallet_count,
                 'amount_per_wallet': amount_per_wallet,
-                'total_amount': total_amount
+                'total_amount': total_amount,
+                'has_valid_signature': self._attack_signature(ScenarioType.SYBIL_ATTACK),
             },
             network_condition=network,
-            expected_detection=True  # 전체 발행량 모니터링으로 탐지
+            expected_detection=True
         )
     
     def generate_gradual_escalation_attack(self,
@@ -224,10 +243,11 @@ class BenchmarkDataGenerator:
                 'multiplier': multiplier,
                 'blocks': blocks,
                 'amounts': amounts,
-                'total_amount': total
+                'total_amount': total,
+                'has_valid_signature': self._attack_signature(ScenarioType.GRADUAL_ESCALATION),
             },
             network_condition=network,
-            expected_detection=True  # 변화율 탐지 필요
+            expected_detection=True
         )
     
     def generate_camouflage_attack(self,
@@ -248,10 +268,11 @@ class BenchmarkDataGenerator:
                 'attack_increment': attack_increment,
                 'amount_per_block': amount_per_block,
                 'blocks': blocks,
-                'total_amount': total
+                'total_amount': total,
+                'has_valid_signature': self._attack_signature(ScenarioType.CAMOUFLAGE),
             },
             network_condition=network,
-            expected_detection=False  # 이상 탐지(anomaly detection) 필요
+            expected_detection=False
         )
     
     # =========================================================================
@@ -270,7 +291,8 @@ class BenchmarkDataGenerator:
             description=f"{amount:,} 토큰 정상 전송",
             parameters={
                 'amount': amount,
-                'method': 'transfer'
+                'method': 'transfer',
+                'has_valid_signature': True,  # 정상 거래: 항상 유효한 서명
             },
             network_condition=network,
             expected_detection=False
@@ -289,7 +311,8 @@ class BenchmarkDataGenerator:
             parameters={
                 'amount': amount,
                 'method': 'transfer',
-                'is_verified': True
+                'is_verified': True,
+                'has_valid_signature': True,
             },
             network_condition=network,
             expected_detection=False
@@ -308,7 +331,8 @@ class BenchmarkDataGenerator:
             parameters={
                 'amount': amount,
                 'method': 'addLiquidity',
-                'is_whitelisted': True
+                'is_whitelisted': True,
+                'has_valid_signature': True,
             },
             network_condition=network,
             expected_detection=False
@@ -329,7 +353,8 @@ class BenchmarkDataGenerator:
                 'recipient_count': recipient_count,
                 'amount_per_recipient': amount_per_recipient,
                 'total_amount': total,
-                'method': 'batch_transfer'
+                'method': 'batch_transfer',
+                'has_valid_signature': True,
             },
             network_condition=network,
             expected_detection=False
@@ -338,22 +363,9 @@ class BenchmarkDataGenerator:
     def generate_micro_sybil_swarm(self, network: str = "normal") -> Scenario:
         """
         소규모 Micro 시빌 떼 공격 — 단일계층 엔진 과부하 트리거용
-
-        특징:
-        - 지갑 수: 50~200개 (대규모 분산)
-        - 건당 금액: 100~999 토큰 (임계값 1,000 미달 → 단건 탐지 불가)
-        - 목적: 임계값 이하 소액 반복으로 Macro 탐지 우회
-
-        [단일계층 영향]
-        - 개별 건 임계값 미달 → 누적 패턴 탐지 필요 → 3.5배 지연
-        - 과부하 누적 → FPR 상승
-
-        [2계층 영향]
-        - Micro 엔진이 즉시 분산 패턴 감지 (60ms)
-        - Macro 엔진 부하 없음 → 서비스 연속성 유지
         """
         wallet_count = random.randint(50, 200)
-        amount_per_wallet = random.randint(100, 999)  # 임계값(1,000) 미달
+        amount_per_wallet = random.randint(100, 999)
         total_amount = wallet_count * amount_per_wallet
         return Scenario(
             label=ScenarioLabel.ATTACK,
@@ -367,8 +379,9 @@ class BenchmarkDataGenerator:
                 'num_wallets': wallet_count,
                 'amount_per_wallet': amount_per_wallet,
                 'amount': total_amount,
-                'is_micro_swarm': True,         # 단일계층 지연 탐지 트리거
-                'below_threshold': True,         # 개별 건 임계값 미달
+                'is_micro_swarm': True,
+                'below_threshold': True,
+                'has_valid_signature': self._attack_signature(ScenarioType.SYBIL_ATTACK),
             },
             network_condition=network,
             expected_detection=True
@@ -387,12 +400,34 @@ class BenchmarkDataGenerator:
             parameters={
                 'amount': amount,
                 'method': 'mint',
-                'collateral_verified': True
+                'collateral_verified': True,
+                'has_valid_signature': True,
             },
             network_condition=network,
             expected_detection=False
         )
     
+    def generate_normal_flash_loan(self,
+                                   loan_range: tuple = (100_000, 100_000_000),
+                                   network: str = "normal") -> Scenario:
+        """정상 플래시론 (차익거래/재정거래용) 시나리오 생성"""
+        loan_amount = random.randint(*loan_range)
+        return Scenario(
+            label=ScenarioLabel.NORMAL,
+            # 플래시론은 유형 자체가 공격이 아니므로 타입을 같게 하되 레이블만 NORMAL
+            scenario_type=ScenarioType.FLASH_LOAN_DEPEG,
+            name="정상 플래시론 차익거래",
+            description=f"${loan_amount:,} USDC 플래시론 반환 (합법 차익거래)",
+            parameters={
+                'loan_amount': loan_amount,
+                'method': 'flash_loan',
+                'is_whitelisted': True,  # 차익거래 컨트랙트 사전 승인(화이트리스트)
+                'has_valid_signature': True,
+            },
+            network_condition=network,
+            expected_detection=False
+        )
+
     # =========================================================================
     # 데이터셋 생성
     # =========================================================================
@@ -456,6 +491,7 @@ class BenchmarkDataGenerator:
             (self.generate_liquidity_add, 1),
             (self.generate_batch_payment, 1),
             (self.generate_normal_mint, 2),
+            (self.generate_normal_flash_loan, 1),  # 정상 플래시론 추가
         ]
         
         weighted_generators = []

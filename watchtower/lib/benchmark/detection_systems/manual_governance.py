@@ -126,18 +126,25 @@ class ManualGovernanceSystem(DetectionSystem):
         response_action = 'none'
 
         if detected_as_attack:
-            # 수동 분석이 완료된 시점에 해당 지갑만 제재 (다운타임 없음)
-            micro_available = True
-            freeze_scope = 'selective'
-            response_action = 'freeze_wallet'
+            # 수동 거버넌스 한계: 인간 판단 후 전체 정지(pause_all) 발동
+            micro_available = False
+            freeze_scope = 'full_network'
+            response_action = 'pause_all'
+            
+            # 수동 복구로 인해 매우 긴 Downtime 발생
+            service_downtime_sec = random.uniform(600, 3600)
+            if scenario.network_condition == 'congested':
+                service_downtime_sec *= 1.5
+            elif scenario.network_condition == 'severe':
+                service_downtime_sec *= 2.0
         
-        # 가스 소비량 (수동 대응 오버헤드)
+        # 가스 소비량 (수동 대응 오버헤드 - Pause Call)
         gas_details = {}
         if detected_as_attack:
             gas_details = {
                 'signature_verification': 0.0,
-                'pause': 0.0,
-                'blacklist_addition': 65000.0    # 블랙리스트 추가 오버헤드만 남음
+                'pause': 18000.0,
+                'blacklist_addition': 65000.0
             }
 
         return DetectionResponse(
@@ -174,12 +181,9 @@ class ManualGovernanceSystem(DetectionSystem):
         # 3) 앙상블
         avg_score = anomaly_score * 0.60 + threshold_score * 0.40
 
-        # 4) FPR 연동 노이즈
-        if not scenario.is_attack():
-            noise_sigma    = self._current_fpr * 0.5
-            overload_noise = float(np.random.normal(loc=0.0, scale=noise_sigma))
-        else:
-            overload_noise = 0.0
+        # 4) FPR 연동 노이즈 (공격/정상 무관 균일 적용 — Data Leakage 제거)
+        noise_sigma    = self._current_fpr * 0.5
+        overload_noise = float(np.random.normal(loc=0.0, scale=noise_sigma))
 
         # 5) 시스템 기본 불확실성 노이즈
         base_noise  = float(np.random.normal(0.0, 0.03))
@@ -198,9 +202,13 @@ class ManualGovernanceSystem(DetectionSystem):
         """
         import numpy as np
         threshold = self.config.get('mint_threshold', 10000)  # 수동거버넌스에 없으면 기본값
-        amount    = scenario.parameters.get('amount',
-                    scenario.parameters.get('total_amount',
-                    scenario.parameters.get('loan_amount', 0)))
+        amount    = scenario.parameters.get('amount_per_block',
+                    scenario.parameters.get('amount_per_wallet',
+                    scenario.parameters.get('amount_per_recipient',
+                    scenario.parameters.get('start_amount',
+                    scenario.parameters.get('amount',
+                    scenario.parameters.get('loan_amount',
+                    scenario.parameters.get('total_amount', 0)))))))
 
         ratio = amount / (threshold + 1e-8)
         if ratio > 1.0:

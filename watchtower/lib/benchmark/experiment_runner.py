@@ -18,10 +18,12 @@ try:
     from .scenario import Scenario
     from .metrics_collector import MetricsCollector
     from .detection_systems.base import DetectionSystem
+    from .network_noise import NetworkNoiseInjector
 except ImportError:
     from scenario import Scenario
     from metrics_collector import MetricsCollector
     from detection_systems.base import DetectionSystem
+    from network_noise import NetworkNoiseInjector
 
 
 @dataclass
@@ -33,6 +35,8 @@ class ExperimentConfig:
     export_path: Optional[str] = None   # 결과 내보내기 경로
     verbose: bool = True                # 상세 로그
     use_extended: bool = True           # 확장 탐지 사용 (피해금액, 중단시간 등)
+    use_network_noise: bool = False     # NetworkNoiseInjector 활성화
+    noise_seed: Optional[int] = None    # 노이즈 랜덤 시드 (None이면 random_seed 사용)
 
 
 class BatchExperimentRunner:
@@ -88,6 +92,12 @@ class BatchExperimentRunner:
         """
         self.total_experiments = len(self.systems) * len(self.dataset) * self.config.iterations
         self.completed_experiments = 0
+
+        # NetworkNoiseInjector 설정
+        noise_seed = self.config.noise_seed
+        if noise_seed is None and self.config.random_seed is not None:
+            noise_seed = self.config.random_seed
+        injector = NetworkNoiseInjector(seed=noise_seed) if self.config.use_network_noise else None
         
         for system in self.systems:
             self.current_system = system.name
@@ -98,10 +108,28 @@ class BatchExperimentRunner:
                 self.current_iteration = iteration + 1
                 
                 # 반복마다 셔플 (선택적)
+                current_dataset = list(self.dataset)
                 if self.config.shuffle_per_iteration:
-                    random.shuffle(self.dataset)
+                    random.shuffle(current_dataset)
+
+                # 네트워크 노이즈 주입
+                if injector is not None:
+                    stream = injector.apply(current_dataset)
+                    processed = injector.process_stream(stream)
+                    stream_scenarios = set(id(e.scenario) for e in processed)
+
+                    # drop된 공격 시나리오를 FN으로 자동 기록
+                    for scenario in current_dataset:
+                        if id(scenario) not in stream_scenarios and scenario.is_attack():
+                            collector.record_from_scenario(
+                                scenario, 'NORMAL', 9999.0,
+                                financial_loss=0.0, service_downtime_sec=0.0
+                            )
+                    scenarios_to_run = [e.scenario for e in processed]
+                else:
+                    scenarios_to_run = current_dataset
                 
-                for scenario in self.dataset:
+                for scenario in scenarios_to_run:
                     if self.config.use_extended:
                         # 확장 탐지 사용 (피해금액, 중단시간 포함)
                         response = system.detect_extended(scenario)

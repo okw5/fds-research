@@ -303,15 +303,23 @@ if st.session_state.benchmark_results:
             matched = [r for r in collector.results if r.metadata.get('scenario_type') == s_type]
             if not matched:
                 continue
-            # 보존율: 실제 손실 / (TP건에서 복원된 금액 기준) 단순화
-            tp_cases = [r for r in matched if r.is_true_positive]
-            fn_cases = [r for r in matched if r.is_false_negative]
-            total = len(matched)
-            if total == 0:
-                rate = 1.0
-            else:
-                # TP → 탐지 성공 (보존), FN → 탐지 실패 (손실)
-                rate = len(tp_cases) / (len(tp_cases) + len(fn_cases)) if (tp_cases or fn_cases) else 1.0
+            # 정밀한 자산 보존율: 실제 손실을 전체 잠재 공격 금액으로 나눈 방어율 적용
+            total_potential = 0.0
+            total_loss = 0.0
+            
+            for r in matched:
+                if r.actual == 'ATTACK':
+                    potential = float(r.metadata.get('amount',
+                                      r.metadata.get('total_amount',
+                                      r.metadata.get('loan_amount', r.financial_loss))))
+                    
+                    if potential == 0 and r.financial_loss > 0:
+                        potential = r.financial_loss if r.is_false_negative else r.financial_loss / 0.05
+                    
+                    total_potential += max(potential, r.financial_loss)
+                    total_loss += r.financial_loss
+                    
+            rate = 1.0 - (total_loss / total_potential) if total_potential > 0 else 1.0
             preservation_data.append({'시스템': name, '시나리오': s_label, '자산 보존율': rate})
 
     if preservation_data:
@@ -583,9 +591,18 @@ if st.session_state.benchmark_results:
             ax.axhline(0.44, color='#FF7043', linestyle=':', linewidth=1.4,
                        label='Threshold ~0.44 (Severe, dynamic)')
 
+        # Scatter 플롯 제목 한글 깨짐 방지: 영문 매핑
+        mapped_name = eng_name
+        if '수동 거버넌스' in eng_name:
+            mapped_name = 'Manual Governance'
+        elif '단일' in eng_name:
+            mapped_name = 'Single Layer'
+        elif '2계층' in eng_name:
+            mapped_name = 'Two Layer'
+            
         ax.set_ylim(0.0, 1.05)
         ax.set_ylabel('Detection Score', color='#AAAAAA', fontsize=9)
-        ax.set_title(eng_name, color='white', fontsize=11, pad=4)
+        ax.set_title(mapped_name, color='white', fontsize=11, pad=4)
 
         # Legend: congestion-level FPR/FNR summary + marker guide
         net_handles = [

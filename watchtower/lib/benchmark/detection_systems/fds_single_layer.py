@@ -134,10 +134,17 @@ class FDSSingleLayerSystem(DetectionSystem):
         response_action = 'none'
 
         if detected_as_attack:
-            # 단일계층도 기존 전체 정지(pause_all)에서 지갑 동결(freeze_wallet)로 변경
-            micro_available = True
-            freeze_scope = 'selective'
-            response_action = 'freeze_wallet'
+            # 단일계층 한계: 탐지 시 전체 정지(pause_all) 발동 -> 서비스 완전 중단
+            micro_available = False
+            freeze_scope = 'full_network'
+            response_action = 'pause_all'
+            
+            # 네트워크 혼잡별 복구(Downtime) 시간 부여 (수동 거버넌스보단 빠르지만 상당한 시간 소요)
+            service_downtime_sec = random.uniform(60, 300)
+            if scenario.network_condition == 'congested':
+                service_downtime_sec *= 1.2
+            elif scenario.network_condition == 'severe':
+                service_downtime_sec *= 1.5
 
         # 가스 소비량 (표준 자동화) + 과부하 진단 정보
         gas_details: Dict[str, float] = {
@@ -191,12 +198,10 @@ class FDSSingleLayerSystem(DetectionSystem):
         # 3. 앙상블
         avg_score = anomaly_score * 0.60 + threshold_score * 0.40
 
-        # 4. FPR 연동 동적 노이즈 — 정상 트랜잭션에만 적용
-        if not scenario.is_attack():
-            noise_sigma    = self._current_fpr * 0.5   # FPR 0.05→σ=0.025, 0.18→σ=0.09
-            overload_noise = float(np.random.normal(loc=0.0, scale=noise_sigma))
-        else:
-            overload_noise = 0.0
+        # 4. 시스템 불확실성 노이즈 (공격/정상 무관 균일 적용)
+        #    FPR 기반 노이즈는 과부하 상태를 모사하되, 레이블 참조 없이 항상 적용
+        noise_sigma    = self._current_fpr * 0.5
+        overload_noise = float(np.random.normal(loc=0.0, scale=noise_sigma))
 
         # 5. 시스템 기본 불확실성 노이즈
         base_noise  = float(np.random.normal(0.0, 0.03))
@@ -219,9 +224,13 @@ class FDSSingleLayerSystem(DetectionSystem):
         임계값 초과 여부가 아닌 비율 기반 → 회피 공격의 소액 거래는 낮은 점수.
         """
         threshold = self.config['mint_threshold']
-        amount    = scenario.parameters.get('amount',
-                    scenario.parameters.get('total_amount',
-                    scenario.parameters.get('loan_amount', 0)))
+        amount    = scenario.parameters.get('amount_per_block',
+                    scenario.parameters.get('amount_per_wallet',
+                    scenario.parameters.get('amount_per_recipient',
+                    scenario.parameters.get('start_amount',
+                    scenario.parameters.get('amount',
+                    scenario.parameters.get('loan_amount',
+                    scenario.parameters.get('total_amount', 0)))))))
 
         ratio = amount / (threshold + 1e-8)
         if ratio > 1.0:
