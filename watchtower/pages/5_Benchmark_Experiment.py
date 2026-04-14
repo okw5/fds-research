@@ -497,11 +497,7 @@ if st.session_state.benchmark_results:
     import matplotlib.patches as mpatches
     import numpy as _np_plot
     import os as _os_plot
-
-    # Output directory
-    _out_dir = '/tmp/output'
-    _os_plot.makedirs(_out_dir, exist_ok=True)
-    _scatter_path = f'{_out_dir}/detection_performance_scatter.png'
+    import io
 
     # Network congestion colors / marker / result-type mapping
     _NET_COLORS = {'normal': '#2196F3', 'congested': '#FF9800', 'severe': '#F44336'}
@@ -633,23 +629,23 @@ if st.session_state.benchmark_results:
 
     axes[-1].set_xlabel('Simulation Timestamp (Event Order)', color='#AAAAAA', fontsize=9)
     plt.tight_layout()
-    plt.savefig(_scatter_path, dpi=140, bbox_inches='tight',
+    
+    img_buf = io.BytesIO()
+    plt.savefig(img_buf, format='png', dpi=140, bbox_inches='tight',
                 facecolor='#0F1117', edgecolor='none')
     plt.close(fig)
+    img_data = img_buf.getvalue()
 
-    if _os_plot.path.exists(_scatter_path):
-        st.image(_scatter_path,
-                 caption='Detection Performance Scatter — saved to /tmp/output/detection_performance_scatter.png',
-                 use_column_width=True)
-        with open(_scatter_path, 'rb') as _f:
-            st.download_button(
-                '📥 Download Scatter PNG',
-                _f.read(),
-                'detection_performance_scatter.png',
-                'image/png',
-            )
-    else:
-        st.warning("Failed to generate scatter plot PNG.")
+    st.image(img_data,
+             caption='Detection Performance Scatter',
+             use_container_width=True)
+             
+    st.download_button(
+        '📥 Download Scatter PNG',
+        img_data,
+        'detection_performance_scatter.png',
+        'image/png',
+    )
 
     # =========================================================================
     # ⑦ 무한발행 공격 타임라인 시뮬레이션
