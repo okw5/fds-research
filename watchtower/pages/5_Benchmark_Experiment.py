@@ -61,11 +61,11 @@ dataset_size = st.sidebar.slider(
 
 attack_ratio = st.sidebar.slider(
     "공격 비율",
-    min_value=0.1,
+    min_value=0.01,
     max_value=0.5,
-    value=0.3,
-    step=0.05,
-    help="데이터셋 중 공격 시나리오의 비율"
+    value=0.01,
+    step=0.01,
+    help="데이터셋 중 공격 시나리오의 비율 (실제 DeFi 환경: 1% 미만)"
 )
 
 iterations = st.sidebar.slider(

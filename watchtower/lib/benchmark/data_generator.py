@@ -432,43 +432,48 @@ class BenchmarkDataGenerator:
     # 데이터셋 생성
     # =========================================================================
     
-    def generate_attack_scenarios(self, count: int, 
+    def generate_attack_scenarios(self, count: int,
                                   network_mix: bool = False) -> List[Scenario]:
         """
         공격 시나리오 생성
-        
+
+        공격 유형 비율 (무한발행 : 준비금탈취 : 플래시론 : 시빌 : 임계값회피 = 1:1:3:3:2)
+        - 무한발행 (INFINITE_MINT):     10% — 일반 + Catastrophic 합산
+        - 준비금 탈취 (RESERVE_DRAIN):  10% — 일반 + Burst 합산
+        - 플래시론 (FLASH_LOAN_DEPEG):  30%
+        - 시빌 공격 (SYBIL_ATTACK):     30% — 일반 + Micro Swarm 합산
+        - 임계값 회피 (THRESHOLD_EVA):  20%
+
         Args:
             count: 생성할 시나리오 수
             network_mix: True면 다양한 네트워크 상태 혼합
         """
         scenarios = []
-
         networks = ['normal'] if not network_mix else ['normal', 'congested', 'severe']
 
-        # Catastrophic 공격 (15%): 단일·2계층 Downtime 차이 극대화
-        catastrophic_count = max(1, int(count * 0.15))
-        for _ in range(catastrophic_count):
-            network = random.choice(networks)
-            scenarios.append(self.generate_catastrophic_mint_attack(network=network))
-
-        # Micro 시빌 떼 공격 (20%): 단일계층 과부하 및 지연 탐지 트리거
-        micro_swarm_count = max(1, int(count * 0.20))
-        for _ in range(micro_swarm_count):
-            network = random.choice(networks)
-            scenarios.append(self.generate_micro_sybil_swarm(network=network))
-
-        # 일반 공격 (나머지 65%)
-        attack_generators = [
-            self.generate_infinite_mint_attack,
-            self.generate_reserve_drain_attack,
-            self.generate_flash_loan_attack,
-            self.generate_threshold_evasion_attack,
-            self.generate_sybil_attack,
-            self.generate_gradual_escalation_attack,
+        # 비율 정의: (가중치, [생성함수 리스트]) — 같은 유형 내 세부 변형은 균등 선택
+        ATTACK_DISTRIBUTION = [
+            # 무한발행 10% — 일반(6%) + Catastrophic(4%)
+            (6,  [self.generate_infinite_mint_attack]),
+            (4,  [self.generate_catastrophic_mint_attack]),
+            # 준비금 탈취 10% — 일반(10%)  ※ Burst는 get_mixed_dataset에서 별도 삽입
+            (10, [self.generate_reserve_drain_attack]),
+            # 플래시론 30%
+            (30, [self.generate_flash_loan_attack]),
+            # 시빌 공격 30% — 일반(15%) + Micro Swarm(15%)
+            (15, [self.generate_sybil_attack]),
+            (15, [self.generate_micro_sybil_swarm]),
+            # 임계값 회피 20%
+            (20, [self.generate_threshold_evasion_attack]),
         ]
-        remaining = count - catastrophic_count - micro_swarm_count
-        for i in range(remaining):
-            generator = random.choice(attack_generators)
+
+        # 가중치 기반 생성 목록 구성
+        weighted_generators = []
+        for weight, gens in ATTACK_DISTRIBUTION:
+            weighted_generators.extend(gens * weight)
+
+        for _ in range(count):
+            generator = random.choice(weighted_generators)
             network = random.choice(networks)
             scenarios.append(generator(network=network))
 
