@@ -21,7 +21,10 @@ from lib.benchmark.experiment_runner import BatchExperimentRunner, ExperimentCon
 from lib.benchmark.detection_systems import (
     ManualGovernanceSystem,
     FDSSingleLayerSystem,
-    FDSTwoLayerSystem
+    FDSTwoLayerSystem,
+    FDSEngine1System,
+    FDSEngine2System,
+    FDSEngine3System
 )
 
 # Page Config
@@ -189,11 +192,23 @@ if not st.session_state.benchmark_dataset:
 else:
     if st.button("▶️ 벤치마크 실험 시작", type="primary", use_container_width=True):
         # 시스템 초기화
-        systems = [
-            ManualGovernanceSystem(),
-            FDSSingleLayerSystem(),
-            FDSTwoLayerSystem()
-        ]
+        sys_e1 = FDSEngine1System()
+        sys_e1.name = "SequenceAnomaly + 1계층 모델"
+        sys_e2 = FDSEngine2System()
+        sys_e2.name = "FlashLoanRule + 1계층 모델"
+        sys_e3 = FDSEngine3System()
+        sys_e3.name = "HoustonLite + 1계층 모델"
+        
+        sys_mg = ManualGovernanceSystem()
+        sys_mg.name = "앙상블모델 + 수동거버넌스"
+        
+        sys_sl = FDSSingleLayerSystem()
+        sys_sl.name = "앙상블모델 + 1계층 모델"
+        
+        sys_tl = FDSTwoLayerSystem()
+        sys_tl.name = "앙상블모델 + 2계층모델"
+        
+        systems = [sys_e1, sys_e2, sys_e3, sys_mg, sys_sl, sys_tl]
         
         config = ExperimentConfig(
             iterations=iterations,
@@ -267,22 +282,48 @@ if st.session_state.benchmark_results:
         gas = summary.get('gas_consumption', {})
         avg_gas = sum(gas.get(f'avg_{k}', 0) for k in ['signature_verification', 'pause', 'blacklist_addition'])
         tm = summary.get('two_layer_metrics', {})
+
+        # Micro 2차 피해율: total_potential(공격 대상 자산 합) 분모 기준 — 자산보존율과 동일 분모
+        _attack_rs = [r for r in collector.results if r.actual == 'ATTACK']
+        _total_potential = sum(
+            float(r.metadata.get('amount',
+                  r.metadata.get('total_amount',
+                  r.metadata.get('loan_amount', r.financial_loss))))
+            for r in _attack_rs
+        )
+        _micro_loss = tm.get('total_micro_secondary_loss_usd', 0.0)
+        _micro_pct = (_micro_loss / _total_potential * 100) if _total_potential > 0 else 0.0
+
         summary_rows.append({
             '시스템 구성': name,
             '탐지율 (Recall)': f"{summary['recall']*100:.1f}%",
             '오탐율 (FPR)': f"{fpr*100:.1f}%",
             'F1-Score': f"{summary['f1_score']:.3f}",
-            '응답 시간 (avg)': f"{summary['latency']['avg_ms']:.0f} ms",
-            '직접 피해 (USD)': f"${summary['financial_loss']['total_usd']:,.0f}",
-            'Micro 2차 피해 (USD)': f"${tm.get('total_micro_secondary_loss_usd', 0):,.0f}",
-            'Downtime 기회비용 (USD)': f"${tm.get('total_downtime_opportunity_cost_usd', 0):,.0f}",
+            '대응 시간 (avg)': f"{summary['latency']['avg_ms']:.0f} ms",
             '자산 보존율': f"{summary['financial_loss']['prevention_rate']*100:.1f}%",
-            '서비스 실효 가동률': f"{summary['availability']['effective_availability']*100:.1f}%",
+            'Micro 2차 피해 (자산 대비)': f"{_micro_pct:.4f}%" if _micro_pct > 0 else "—",
             '평균 Downtime': f"{summary['service_downtime']['avg_per_detection_min']:.1f} 분",
             '평균 가스비 (Gas)': f"{avg_gas:,.0f}",
         })
 
     st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
+
+    # ── 논문 인용용 계산식 세부 정보 ──────────────────────────────────────────
+    with st.expander("📐 각 지표 계산식 세부 정보 (논문 인용용)", expanded=False):
+        st.markdown("""
+| 지표 | 계산식 | 비고 |
+|---|---|---|
+| **탐지율 (Recall)** | $\\text{Recall} = \\dfrac{TP}{TP + FN}$ | 실제 공격 중 탐지 성공 비율. FN 감소가 핵심 |
+| **오탐율 (FPR)** | $\\text{FPR} = \\dfrac{FP}{FP + TN}$ | 정상 거래 중 공격으로 오탐된 비율. 낮을수록 서비스 연속성 보장 |
+| **F1-Score** | $F_1 = \\dfrac{2 \\cdot P \\cdot R}{P + R}, \\quad P = \\dfrac{TP}{TP+FP}$ | Precision–Recall 조화 평균. 불균형 데이터셋에서 종합 탐지 성능 지표 |
+| **대응 시간** | $\\bar{t}_{response} = \\dfrac{1}{N}\\sum_{i=1}^{N} t_i$ (ms) | 탐지 요청부터 회로 차단 결정까지 평균 소요 시간 |
+| **자산 보존율** | $r_{pres} = 1 - \\dfrac{\\sum L_i}{\\sum V_i}$ | $L_i$: 실제 발생한 피해, $V_i$: 공격 시나리오의 잠재 피해금액(amount). 지수 손실 모델 $L_i = V_i \\cdot (1 - e^{-v \\cdot t_{latency}})$ 적용 |
+| **Micro 2차 피해율** | $r_{micro} = \\dfrac{\\sum m_i}{\\sum V_i} \\times 100\\%$ | $m_i$: Macro pause 후 Micro 채널로 유입된 위조 토큰 피해. $m_i = V_i \\cdot \\rho_{leak} \\cdot \\rho_{inflow} \\cdot \\rho_{detect}$ (2계층 전용, 분모는 자산보존율과 동일) |
+| **평균 Downtime** | $\\bar{d} = \\dfrac{\\sum d_k}{K}$ (분) | $K$: ATTACK으로 판정된 건수. 서킷 브레이커 발동부터 서비스 복구까지 평균 시간 |
+| **평균 가스비** | $\\bar{g} = g_{sig} + g_{pause} + g_{blacklist}$ (Gas) | 탐지 1건당 서명 검증 + Pause + 블랙리스트 추가 3단계 가스 합산 평균 |
+
+> **공통 실험 조건**: 1 Token = 1 USD 고정 환산. 네트워크 혼잡도(Normal / Congested / Severe) Log-Normal 분포 적용. 지수 손실 확산 속도 $v$는 공격 유형별 상이(무한발행 0.18 / 준비금 탈취 0.14 / 플래시론 0.09 / 시빌 0.05).
+        """)
 
     # =========================================================================
     # ② 공격 시나리오별 자산 보존율 비교 (그룹 막대)
@@ -350,8 +391,8 @@ if st.session_state.benchmark_results:
             latency_rows.append({'시스템': name, '네트워크': net_label, '응답시간(ms)': r.latency_ms})
 
     lat_df = pd.DataFrame(latency_rows)
-    # 단일 계층과 2계층만 비교
-    box_df = lat_df[lat_df['시스템'].isin(['FDS 단일 토큰', 'FDS 2계층 토큰'])]
+    # 수동거버넌스를 제외하고 모두 비교
+    box_df = lat_df[~lat_df['시스템'].str.contains('수동')]
 
     if not box_df.empty:
         # ★ 패싯(column)이 있으면 레이어(+)를 추가할 수 없으므로
@@ -479,173 +520,7 @@ if st.session_state.benchmark_results:
     ).properties(height=380, title='Circuit Breaker 단계별 가스 소비량 비교')
     st.altair_chart(gas_chart, use_container_width=True)
 
-    # =========================================================================
-    # ⑥ Detection Performance Scatter Plot (Engine x Network Congestion)
-    # =========================================================================
-    st.divider()
-    st.markdown("### 📌 ⑥ Detection Performance Scatter (Engine × Network Congestion)")
-    st.caption(
-        "X-axis: simulation timestamp (event order) | Y-axis: detection score (0–1). "
-        "Color = network congestion level (blue=Normal / orange=Congested / red=Severe). "
-        "Marker = detection result (▲TP / ▽FN / ×FP / ○TN). "
-        "Dashed lines show static threshold (0.50) and dynamic threshold under Severe congestion (≈0.44)."
-    )
 
-    import matplotlib
-    matplotlib.use('Agg')
-    import matplotlib.pyplot as plt
-    import matplotlib.patches as mpatches
-    import numpy as _np_plot
-    import os as _os_plot
-    import io
-
-    # Network congestion colors / marker / result-type mapping
-    _NET_COLORS = {'normal': '#2196F3', 'congested': '#FF9800', 'severe': '#F44336'}
-    _RESULT_MARKERS = {
-        'TP': ('^', 60, 0.85),   # triangle_up
-        'FN': ('v', 60, 0.85),   # triangle_down
-        'FP': ('x', 60, 1.00),   # x
-        'TN': ('o', 25, 0.18),   # circle semi-transparent
-    }
-
-    _engine_names = list(collectors.keys())
-    _n_engines = len(_engine_names)
-
-    fig, axes = plt.subplots(
-        _n_engines, 1,
-        figsize=(14, 4 * _n_engines),
-        sharex=True,
-        facecolor='#0F1117'
-    )
-    if _n_engines == 1:
-        axes = [axes]
-    fig.suptitle(
-        'Detection Performance Scatter: Engine x Network Congestion (Time-Series)',
-        fontsize=13, color='white', y=1.01
-    )
-
-    for ax_idx, (eng_name, collector) in enumerate(collectors.items()):
-        ax = axes[ax_idx]
-        ax.set_facecolor('#1A1D27')
-        ax.tick_params(colors='#AAAAAA')
-        for spine in ax.spines.values():
-            spine.set_edgecolor('#333344')
-
-        # Aggregate FPR / FNR per congestion level
-        stats_by_net: dict = {}
-        for net in ['normal', 'congested', 'severe']:
-            net_rs = [r for r in collector.results
-                      if r.metadata.get('network_condition', 'normal') == net]
-            n_p  = sum(1 for r in net_rs if r.actual == 'ATTACK')
-            n_n  = sum(1 for r in net_rs if r.actual == 'NORMAL')
-            n_fp = sum(1 for r in net_rs if r.is_false_positive)
-            n_fn = sum(1 for r in net_rs if r.is_false_negative)
-            fpr  = n_fp / max(1, n_n)
-            fnr  = n_fn / max(1, n_p)
-            stats_by_net[net] = {'fpr': fpr, 'fnr': fnr, 'count': len(net_rs)}
-
-        results_list = list(collector.results)
-
-        # Pre-compute max latency for score normalization
-        max_lat = max((r2.latency_ms for r2 in results_list), default=1.0) or 1.0
-
-        for t, r in enumerate(results_list):
-            net   = r.metadata.get('network_condition', 'normal')
-            color = _NET_COLORS.get(net, '#AAAAAA')
-
-            if r.is_true_positive:
-                rtype = 'TP'
-            elif r.is_false_negative:
-                rtype = 'FN'
-            elif r.is_false_positive:
-                rtype = 'FP'
-            else:
-                rtype = 'TN'
-
-            marker, sz, alpha = _RESULT_MARKERS[rtype]
-
-            # Score proxy: high latency = lower confidence for attack events
-            if rtype in ('TP', 'FN'):
-                score = float(_np_plot.clip(1.0 - r.latency_ms / max_lat * 0.6 + 0.3, 0.3, 1.0))
-            else:
-                score = float(_np_plot.clip(_np_plot.random.uniform(0.05, 0.45), 0.0, 1.0))
-
-            ax.scatter(t, score, c=color, marker=marker,
-                       s=sz, alpha=alpha, linewidths=0.5,
-                       edgecolors='white' if rtype in ('TP', 'FP') else 'none')
-
-        # Static threshold line (blue dashed)
-        ax.axhline(0.50, color='#4FC3F7', linestyle='--', linewidth=1.2,
-                   label='Threshold = 0.50 (Normal / Congested)')
-
-        # Dynamic threshold for Severe congestion (orange dotted)
-        severe_exists = any(
-            r.metadata.get('network_condition') == 'severe'
-            for r in results_list
-        )
-        if severe_exists:
-            ax.axhline(0.44, color='#FF7043', linestyle=':', linewidth=1.4,
-                       label='Threshold ~0.44 (Severe, dynamic)')
-
-        # Scatter 플롯 제목 한글 깨짐 방지: 영문 매핑
-        mapped_name = eng_name
-        if '수동 거버넌스' in eng_name:
-            mapped_name = 'Manual Governance'
-        elif '단일' in eng_name:
-            mapped_name = 'Single Layer'
-        elif '2계층' in eng_name:
-            mapped_name = 'Two Layer'
-            
-        ax.set_ylim(0.0, 1.05)
-        ax.set_ylabel('Detection Score', color='#AAAAAA', fontsize=9)
-        ax.set_title(mapped_name, color='white', fontsize=11, pad=4)
-
-        # Legend: congestion-level FPR/FNR summary + marker guide
-        net_handles = [
-            mpatches.Patch(
-                color=_NET_COLORS[n],
-                label=(
-                    f"{n.capitalize():<10}"
-                    f"  FPR={stats_by_net[n]['fpr']*100:.1f}%"
-                    f"  FNR={stats_by_net[n]['fnr']*100:.1f}%"
-                    f"  (n={stats_by_net[n]['count']})"
-                )
-            )
-            for n in ['normal', 'congested', 'severe']
-        ]
-        result_handles = [
-            mpatches.Patch(color='#AAAAAA',
-                           label='^ TP   v FN   x FP   o TN')
-        ]
-        ax.legend(
-            handles=net_handles + result_handles,
-            loc='upper right',
-            fontsize=7.5,
-            facecolor='#1A1D27',
-            edgecolor='#444',
-            labelcolor='white',
-            framealpha=0.8,
-        )
-
-    axes[-1].set_xlabel('Simulation Timestamp (Event Order)', color='#AAAAAA', fontsize=9)
-    plt.tight_layout()
-    
-    img_buf = io.BytesIO()
-    plt.savefig(img_buf, format='png', dpi=140, bbox_inches='tight',
-                facecolor='#0F1117', edgecolor='none')
-    plt.close(fig)
-    img_data = img_buf.getvalue()
-
-    st.image(img_data,
-             caption='Detection Performance Scatter',
-             use_container_width=True)
-             
-    st.download_button(
-        '📥 Download Scatter PNG',
-        img_data,
-        'detection_performance_scatter.png',
-        'image/png',
-    )
 
     # =========================================================================
     # ⑦ 무한발행 공격 타임라인 시뮬레이션
@@ -654,7 +529,7 @@ if st.session_state.benchmark_results:
     st.markdown("### 📈 ⑦ 무한발행 공격 타임라인 시뮬레이션")
     st.caption(
         "대량 민트 공격 1건에 대해 3개 시스템의 **시간 축별 누적 피해 공식(`1 - e^(-v×t)`)** 시뮬레이션. "
-        "수동거버넌스(빨간선)는 가장 늦게, 2계층(초록선)은 가장 빠르게 차단합니다."
+        "1계층(주황선)보다 2계층(초록선)이 더 빠르게 차단합니다. (수동거버넌스 제외)"
     )
 
     import math as _math
@@ -663,16 +538,20 @@ if st.session_state.benchmark_results:
     ATTACK_VELOCITY = 0.18      # 무한발행 확산 속도
     TOKEN_PRICE_USD = 1.0
 
-    # 시스템별 대응 시간(초) — 시뮬레이션 파라미터에서 산출
+    # 시스템별 대응 시간(초) — 시뮬레이션 파라미터에서 산출 (수동거버넌스 제외)
     SYSTEM_RESPONSE = {
-        '기존 수동 거버넌스': 300.0,   # ~5분 (latency 3500~6000ms + 확인 시간)
-        'FDS 단일 토큰':    0.35,   # 350ms
-        'FDS 2계층 토큰':   0.12,   # 120ms
+        '앙상블모델 + 1계층 모델':      0.35,   # 350ms
+        '앙상블모델 + 2계층모델':       0.12,   # 120ms
+        'SequenceAnomaly + 1계층 모델': 0.35,
+        'FlashLoanRule + 1계층 모델':   0.35,
+        'HoustonLite + 1계층 모델':     0.35,
     }
     SYSTEM_COLORS = {
-        '기존 수동 거버넌스': '#E74C3C',
-        'FDS 단일 토큰':    '#F39C12',
-        'FDS 2계층 토큰':   '#27AE60',
+        '앙상블모델 + 1계층 모델':      '#F39C12',
+        '앙상블모델 + 2계층모델':       '#27AE60',
+        'SequenceAnomaly + 1계층 모델': '#A569BD',
+        'FlashLoanRule + 1계층 모델':   '#5DADE2',
+        'HoustonLite + 1계층 모델':     '#45B39D',
     }
 
     t_max = 350
@@ -724,7 +603,7 @@ if st.session_state.benchmark_results:
         ),
         use_container_width=True
     )
-    st.caption("점선: 각 시스템의 대응 시각. 기존 수동거버넌스는 5분 동안 대응하지 못해 피해가 기하급수적으로 증가.")
+    st.caption("점선: 각 시스템의 대응 시각. 탐지엔진 단독 1계층과 앙상블 2계층의 미세한 대응 시간 차이를 확인할 수 있습니다.")
 
     # =========================================================================
     # ⑧ 단일계층 엔진 과부하 FPR 시각화
