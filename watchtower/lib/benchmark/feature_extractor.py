@@ -93,7 +93,7 @@ _METHOD_DEPTH: Dict[str, float] = {
 
 # ── 시나리오 유형별 기본 tx 빈도 배율 ───────────────────────────────────────
 _TYPE_FREQ_MULTIPLIER: Dict[ScenarioType, float] = {
-    ScenarioType.FLASH_LOAN_DEPEG:  4.0,   # 같은 블록 내 폭증
+    ScenarioType.FLASH_LOAN_DEPEG:  4.0,   # 공격: 같은 블록 내 폭증
     ScenarioType.SYBIL_ATTACK:      3.0,   # 다수 지갑 → 빈도 높음
     ScenarioType.INFINITE_MINT:     2.5,
     ScenarioType.RESERVE_DRAIN:     2.0,
@@ -105,6 +105,7 @@ _TYPE_FREQ_MULTIPLIER: Dict[ScenarioType, float] = {
     ScenarioType.LIQUIDITY_ADD:     1.0,
     ScenarioType.BATCH_PAYMENT:     1.5,   # 배치지만 건수 많음
     ScenarioType.NORMAL_MINT:       1.0,
+    ScenarioType.NORMAL_FLASH_LOAN: 1.5,   # 정상 플래시론: 공격(4.0)이 아닌 정상 수준
 }
 
 

@@ -84,9 +84,10 @@ class ThreatAggregator:
         final_score = weighted_score / total_weight if total_weight > 0 else 0.0
 
         # ── CRITICAL 오버라이드 ──
-        # 어느 엔진이든 CRITICAL + 높은 confidence → 즉시 pause
+        # confidence >= 0.9 인 CRITICAL 판정만 오버라이드 발동 (0.8→0.9로 상향)
+        # 회피/위장 공격처럼 앙상블 점수가 낮은 경우는 오버라이드 발동 안 함
         critical_override = any(
-            r.threat_level == ThreatLevel.CRITICAL and r.confidence >= 0.8
+            r.threat_level == ThreatLevel.CRITICAL and r.confidence >= 0.9
             for r in results
         )
         if critical_override:

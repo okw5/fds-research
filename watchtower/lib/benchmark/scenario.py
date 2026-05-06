@@ -32,6 +32,7 @@ class ScenarioType(Enum):
     LIQUIDITY_ADD = "liquidity_add"           # 유동성 공급
     BATCH_PAYMENT = "batch_payment"           # 급여/배당 지급
     NORMAL_MINT = "normal_mint"               # 정상적 발행 (담보 기반)
+    NORMAL_FLASH_LOAN = "normal_flash_loan"   # 정상 플래시론 (차익거래, 화이트리스트)
 
 
 @dataclass
@@ -123,7 +124,8 @@ NORMAL_TYPES = {
     ScenarioType.LARGE_TRANSFER,
     ScenarioType.LIQUIDITY_ADD,
     ScenarioType.BATCH_PAYMENT,
-    ScenarioType.NORMAL_MINT
+    ScenarioType.NORMAL_MINT,
+    ScenarioType.NORMAL_FLASH_LOAN,
 }
 
 

@@ -8,7 +8,6 @@ import json
 import random
 from typing import List, Dict, Any, Optional
 
-# 조건부 임포트: 패키지 모드와 직접 실행 모드 지원
 try:
     from .scenario import (
         Scenario, ScenarioType, ScenarioLabel, 
@@ -54,6 +53,61 @@ class BenchmarkDataGenerator:
     # 공격 시나리오 생성
     # =========================================================================
     
+    @staticmethod
+    def _inject_state_mock(scenario: Scenario):
+        """
+        HoustonLite 엔진(Engine3)에서 검사할 수 있도록, 트랜잭션 타입과 금액을 바탕으로
+        가상의 state_before, state_after 딕셔너리를 생성하여 parameters에 주입합니다.
+        """
+        # 기준 상태
+        initial_supply = 10_000_000
+        current_supply = 15_000_000
+        reserve = 2_000_000
+        price = 1.0
+
+        state_before = {
+            'total_supply': current_supply,
+            'initial_supply': initial_supply,
+            'reserve': reserve,
+            'price': price,
+            'mint_limit': 1_000_000,
+            'period_mint_amount': 500_000,
+            'is_sender_blacklisted': False
+        }
+        state_after = state_before.copy()
+
+        # 시나리오별 amount 추출
+        params = scenario.parameters
+        amount = float(params.get('amount',
+                 params.get('amount_per_block',
+                 params.get('amount_per_wallet',
+                 params.get('total_amount',
+                 params.get('loan_amount', 0))))))
+
+        # state_after 변화 모사
+        stype = scenario.scenario_type
+        if stype == ScenarioType.INFINITE_MINT:
+            state_after['total_supply'] += amount
+            state_after['period_mint_amount'] += amount
+            state_after['price'] = max(0.01, price * (current_supply / state_after['total_supply']))
+        elif stype == ScenarioType.RESERVE_DRAIN:
+            state_after['reserve'] = max(0, reserve - amount)
+        elif stype == ScenarioType.FLASH_LOAN_DEPEG:
+            expected_depeg = params.get('expected_depeg', 20) / 100.0
+            state_after['price'] = price * (1.0 - expected_depeg)
+        elif stype in (ScenarioType.NORMAL_TRANSFER, ScenarioType.LARGE_TRANSFER):
+            # 전송은 상태 변화 미미
+            pass
+        elif stype == ScenarioType.NORMAL_MINT:
+            state_after['total_supply'] += amount
+            state_after['period_mint_amount'] += amount
+        elif stype == ScenarioType.NORMAL_FLASH_LOAN:
+            # 정상 플래시론 차익거래: 차익은 남지만 price 붕괴는 없음 (< 5% 변화)
+            state_after['price'] = price * 0.98
+
+        params['state_before'] = state_before
+        params['state_after'] = state_after
+
     @staticmethod
     def _attack_signature(scenario_type=None, evasion_chance: float = 0.05) -> bool:
         """
@@ -414,8 +468,9 @@ class BenchmarkDataGenerator:
         loan_amount = random.randint(*loan_range)
         return Scenario(
             label=ScenarioLabel.NORMAL,
-            # 플래시론은 유형 자체가 공격이 아니므로 타입을 같게 하되 레이블만 NORMAL
-            scenario_type=ScenarioType.FLASH_LOAN_DEPEG,
+            # NORMAL_FLASH_LOAN 타입 사용 — FLASH_LOAN_DEPEG(공격)과 명확히 분리
+            # feature_extractor에서 tx_frequency 배율이 4.0(공격) 대신 1.5(정상)로 적용됨
+            scenario_type=ScenarioType.NORMAL_FLASH_LOAN,
             name="정상 플래시론 차익거래",
             description=f"${loan_amount:,} USDC 플래시론 반환 (합법 차익거래)",
             parameters={
@@ -534,6 +589,10 @@ class BenchmarkDataGenerator:
         
         dataset = attacks + normals
         
+        # State Mock 주입 (Engine3 검사용)
+        for s in dataset:
+            self._inject_state_mock(s)
+
         if shuffle:
             random.shuffle(dataset)
 
@@ -575,6 +634,10 @@ class BenchmarkDataGenerator:
                     self.generate_large_transfer(network=network),
                 ])
         
+        # State Mock 주입 (Engine3 검사용)
+        for s in scenarios:
+            self._inject_state_mock(s)
+
         random.shuffle(scenarios)
         return scenarios
 

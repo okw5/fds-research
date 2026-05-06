@@ -239,7 +239,8 @@ class FDSTwoLayerSystem(DetectionSystem):
         macro_types = {
             ScenarioType.INFINITE_MINT,
             ScenarioType.RESERVE_DRAIN,
-            ScenarioType.FLASH_LOAN_DEPEG,
+            ScenarioType.FLASH_LOAN_DEPEG,   # 공격 플래시론만 Macro
+            # NORMAL_FLASH_LOAN은 Macro 제외 — 화이트리스트 정상 거래이므로 Micro 경로 처리
             ScenarioType.LIQUIDITY_ADD,
         }
         return scenario.scenario_type in macro_types

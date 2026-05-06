@@ -84,8 +84,8 @@ def main():
         print(f"{'(목표)':<25} {target[0]:>10.2f} {target[1]:>10.2f} {target[2]:>10.2f} {target[3]:>12}")
         print()
     
-    print("=" * 70)
-    print("✅ 벤치마크 테스트 완료!")
+    print("======================================================================")
+    print("벤치마크 테스트 완료!")
     print("💡 Streamlit 페이지에서 더 상세한 실험을 수행할 수 있습니다:")
     print("   streamlit run watchtower/app.py")
     print("=" * 70)

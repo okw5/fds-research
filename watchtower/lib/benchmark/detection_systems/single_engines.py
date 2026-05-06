@@ -106,20 +106,41 @@ class FDSEngine3System(FDSSingleLayerSystem):
         self.name = "탐지엔진3 + 1계층 모델"
 
     def _run_detection_algorithms(self, scenario: Scenario):
-        amount = float(scenario.parameters.get('amount_per_block',
-                 scenario.parameters.get('amount',
-                 scenario.parameters.get('total_amount', 0))))
+        import time
+        try:
+            from watchtower.lib.engines.houston_lite import HoustonLiteInvariantChecker
+        except ImportError:
+            import sys
+            import os
+            # project root (/fds-research)
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+            if project_root not in sys.path:
+                sys.path.insert(0, project_root)
+            from watchtower.lib.engines.houston_lite import HoustonLiteInvariantChecker
+
+        # 싱글톤처럼 쓰려면 멤버 변수로 빼는 게 좋지만 벤치마크 속도를 위해 매번 생성하거나
+        # 여기서 간이 생성 (실험 목적상 큰 차이 없음)
+        if not hasattr(self, '_engine3'):
+            self._engine3 = HoustonLiteInvariantChecker()
+
+        tx_data = scenario.parameters.copy()
+        tx_data['amount'] = float(tx_data.get('amount_per_block',
+                            tx_data.get('amount',
+                            tx_data.get('total_amount', 0))))
+        tx_data['type'] = tx_data.get('method', 'transfer')
         
-        invariant_score = 0.1
+        # Engine3 평가 수행
+        result = self._engine3.analyze(tx_data)
         
-        # Invariant 위반 조건 모사
-        is_catastrophic = scenario.parameters.get('is_catastrophic', False) or amount >= 5_000_000
-        is_drain = scenario.scenario_type == ScenarioType.RESERVE_DRAIN
-        
-        if is_catastrophic or is_drain:
-            invariant_score = 0.95
-        elif amount > 500_000:
-            invariant_score = 0.6
+        # ThreatLevel을 1.0 체제의 점수로 변환 (간이 변환)
+        level_scores = {
+            'CRITICAL': 0.95,
+            'HIGH':     0.75,
+            'MEDIUM':   0.55,
+            'LOW':      0.35,
+            'NONE':     0.10
+        }
+        invariant_score = level_scores.get(result.threat_level.name, 0.1)
             
         avg_score = invariant_score
         
