@@ -1,0 +1,289 @@
+{
+  "resultId": "0xca94c53db8577eea6808cd64c436b9b29aadbc81110206a17b2b87280be7aa75",
+  "txMeta": {
+    "chainId": 1,
+    "blockNumber": 23020732,
+    "blockTimestamp": 1753743047,
+    "blockHash": "0xc3f69aeafa61f8e3221e36c7ccbad3358cd9a9ac150ae0eda35e5db1db46c903",
+    "blockMiner": "0x4838b106fce9647bdf1e7877bf73ce8b0bad5f97",
+    "transactionIndex": 12,
+    "transactionHash": "0x01e6c3f3c0b63bc571c822829ec0d8ea3f6babf4e43ef40fa692e498269fc54c",
+    "transactionFromAddress": "0xae2fc483527b8ef99eb5d9b44875f005ba1fae13",
+    "transactionToAddress": "0x1f2f10d1c40777ae1da742455c65828ff36df387",
+    "gasPrice": 6378778297,
+    "gasUsed": 101039,
+    "baseFeePerGas": 255735000
+  },
+  "tokenFlows": [
+    {
+      "address": "0xae2fc483527b8ef99eb5d9b44875f005ba1fae13",
+      "tags": [
+        "SandwichAttacker"
+      ],
+      "tokenBalances": [
+        {
+          "tokenSpec": "PLATFORM",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tokenAmount": "-644508140964158",
+          "tokenVolume": "-2.439792785376259627"
+        }
+      ]
+    },
+    {
+      "address": "0x1f2f10d1c40777ae1da742455c65828ff36df387",
+      "tags": [
+        "SandwichAttacker"
+      ],
+      "tokenBalances": [
+        {
+          "tokenSpec": "PLATFORM",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tokenAmount": "2760613575",
+          "tokenVolume": "0.000010450333603887"
+        },
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+          "tokenAmount": "-46315410240307200",
+          "tokenVolume": "-175.327504144478029367"
+        },
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0x42069e779838929495ed0152ffc27145ce5c7f98",
+          "tokenAmount": "390177791369474473984",
+          "tokenVolume": "175.327504144478019987"
+        }
+      ]
+    },
+    {
+      "address": "0xe1a4506697e653565b80cbb773760f8067e34ea3",
+      "tags": [
+        "CommonTrader"
+      ],
+      "tokenBalances": [
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+          "tokenAmount": "46315410240307200",
+          "tokenVolume": "175.327504144478029367"
+        },
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0x42069e779838929495ed0152ffc27145ce5c7f98",
+          "tokenAmount": "-390177791369474473984",
+          "tokenVolume": "-175.327504144478019987"
+        }
+      ]
+    },
+    {
+      "address": "0x4838b106fce9647bdf1e7877bf73ce8b0bad5f97",
+      "tags": [
+        "Miner"
+      ],
+      "tokenBalances": [
+        {
+          "tokenSpec": "PLATFORM",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tokenAmount": "644505380350583",
+          "tokenVolume": "2.439782335042655739"
+        }
+      ]
+    }
+  ],
+  "tokenPrices": [
+    {
+      "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "tokenSpec": "PLATFORM",
+      "priceInUsd": "3785.51119886"
+    },
+    {
+      "tokenAddress": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "tokenSpec": "ERC20",
+      "priceInUsd": "3785.51119886"
+    },
+    {
+      "tokenAddress": "0x42069e779838929495ed0152ffc27145ce5c7f98",
+      "tokenSpec": "ERC20",
+      "priceInUsd": "0.4493528540645554339043210046"
+    }
+  ],
+  "sandwichRole": "BackRun",
+  "summary": {
+    "profit": "-2.439782335042665120",
+    "cost": "2.439782335042655739",
+    "revenue": "0.000000000000000000",
+    "tokenCount": 3,
+    "types": [
+      "PartialSandwich"
+    ],
+    "liquidationDetails": []
+  },
+  "missingTokenPrices": [],
+  "totalRevenues": [
+    {
+      "address": "0xae2fc483527b8ef99eb5d9b44875f005ba1fae13",
+      "tags": [
+        "SandwichAttacker"
+      ],
+      "tokenBalances": [
+        {
+          "tokenSpec": "PLATFORM",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tokenAmount": "-644508140964158",
+          "tokenVolume": "-2.439792785376259627"
+        }
+      ]
+    },
+    {
+      "address": "0x1f2f10d1c40777ae1da742455c65828ff36df387",
+      "tags": [
+        "SandwichAttacker"
+      ],
+      "tokenBalances": [
+        {
+          "tokenSpec": "PLATFORM",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tokenAmount": "2760613575",
+          "tokenVolume": "0.000010450333603887"
+        },
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+          "tokenAmount": "-46315410240307200",
+          "tokenVolume": "-175.327504144478029367"
+        },
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0x42069e779838929495ed0152ffc27145ce5c7f98",
+          "tokenAmount": "390177791369474473984",
+          "tokenVolume": "175.327504144478019987"
+        }
+      ]
+    },
+    {
+      "address": "0x4838b106fce9647bdf1e7877bf73ce8b0bad5f97",
+      "tags": [
+        "Miner"
+      ],
+      "tokenBalances": [
+        {
+          "tokenSpec": "PLATFORM",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tokenAmount": "644505380350583",
+          "tokenVolume": "2.439782335042655739"
+        }
+      ]
+    }
+  ],
+  "totalCosts": [
+    {
+      "address": "0x4838b106fce9647bdf1e7877bf73ce8b0bad5f97",
+      "tags": [
+        "Miner"
+      ],
+      "tokenBalances": [
+        {
+          "tokenSpec": "PLATFORM",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tokenAmount": "-644505380350583",
+          "tokenVolume": "-2.439782335042655739"
+        }
+      ]
+    }
+  ],
+  "totalProfits": [
+    {
+      "address": "0xae2fc483527b8ef99eb5d9b44875f005ba1fae13",
+      "tags": [
+        "SandwichAttacker"
+      ],
+      "tokenBalances": [
+        {
+          "tokenSpec": "PLATFORM",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tokenAmount": "-644505380350583",
+          "tokenVolume": "-2.439782335042655739"
+        },
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+          "tokenAmount": "-46315410240307200",
+          "tokenVolume": "-175.327504144478029367"
+        },
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0x42069e779838929495ed0152ffc27145ce5c7f98",
+          "tokenAmount": "390177791369474473984",
+          "tokenVolume": "175.327504144478019987"
+        }
+      ]
+    }
+  ],
+  "revenueNet": [
+    {
+      "address": "",
+      "tokenBalances": [
+        {
+          "tokenSpec": "PLATFORM",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tokenAmount": "0"
+        },
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+          "tokenAmount": "-46315410240307200",
+          "tokenVolume": "-175.327504144478029367"
+        },
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0x42069e779838929495ed0152ffc27145ce5c7f98",
+          "tokenAmount": "390177791369474473984",
+          "tokenVolume": "175.327504144478019987"
+        }
+      ]
+    }
+  ],
+  "costNet": [
+    {
+      "address": "",
+      "tokenBalances": [
+        {
+          "tokenSpec": "PLATFORM",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tokenAmount": "-644505380350583",
+          "tokenVolume": "-2.439782335042655739"
+        }
+      ]
+    }
+  ],
+  "profitNet": [
+    {
+      "address": "0xae2fc483527b8ef99eb5d9b44875f005ba1fae13",
+      "tags": [
+        "SandwichAttacker"
+      ],
+      "tokenBalances": [
+        {
+          "tokenSpec": "PLATFORM",
+          "tokenAddress": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "tokenAmount": "-644505380350583",
+          "tokenVolume": "-2.439782335042655739"
+        },
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+          "tokenAmount": "-46315410240307200",
+          "tokenVolume": "-175.327504144478029367"
+        },
+        {
+          "tokenSpec": "ERC20",
+          "tokenAddress": "0x42069e779838929495ed0152ffc27145ce5c7f98",
+          "tokenAmount": "390177791369474473984",
+          "tokenVolume": "175.327504144478019987"
+        }
+      ]
+    }
+  ],
+  "transactionHash": "0x01e6c3f3c0b63bc571c822829ec0d8ea3f6babf4e43ef40fa692e498269fc54c",
+  "updateTime": 1753743061
+}
