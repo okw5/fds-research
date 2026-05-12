@@ -170,7 +170,7 @@ class TestHoustonLiteInvariantChecker(unittest.TestCase):
                 "price": 1.0, "period_mint_amount": 0,
             },
         })
-        self.assertIn("reserve_ratio", result.details["violations"])
+        self.assertIn("reserve_collateral_ratio", result.details["violations"])
 
     def test_price_stability_violation(self):
         """Price deviation > 20% → MEDIUM 위반"""
@@ -186,15 +186,158 @@ class TestHoustonLiteInvariantChecker(unittest.TestCase):
                 "period_mint_amount": 0,
             },
         })
-        self.assertIn("price_stability", result.details["violations"])
+        self.assertIn("price_deviation_per_tx", result.details["violations"])
 
     def test_list_invariants(self):
-        """Invariant 목록 조회"""
+        """Invariant 목록 조회 — 8개로 증가"""
         invariants = self.engine.list_invariants()
-        self.assertGreaterEqual(len(invariants), 5)
+        self.assertGreaterEqual(len(invariants), 8)
         names = [inv["name"] for inv in invariants]
         self.assertIn("total_supply_cap", names)
-        self.assertIn("reserve_ratio", names)
+        self.assertIn("reserve_collateral_ratio", names)
+        self.assertIn("reserve_drain_limit", names)
+        self.assertIn("collateral_backing_ratio", names)
+
+    def test_inv4_reserve_drain_30_percent(self):
+        """INV-4 강화: reserve 30% 초과 drain → CRITICAL 위반 (기존 50% 기준보다 강함)"""
+        result = self.engine.analyze({
+            "from": "0xAttacker", "amount": 700_000, "type": "drain",
+            "state_before": {
+                "total_supply": 1_000_000, "initial_supply": 1_000_000,
+                "reserve": 1_000_000, "price": 1.0, "mint_limit": 500_000,
+            },
+            "state_after": {
+                "total_supply": 1_000_000,
+                "reserve": 650_000,  # 35% drain > 30% → 위반
+                "price": 1.0, "period_mint_amount": 0,
+            },
+        })
+        self.assertIn("reserve_drain_limit", result.details["violations"])
+        self.assertEqual(result.threat_level, ThreatLevel.CRITICAL)
+
+    def test_inv5_reserve_impact(self):
+        """INV-5: amount > before.reserve × 20% → HIGH 위반"""
+        result = self.engine.analyze({
+            "from": "0xAttacker", "amount": 500_000, "type": "mint",
+            "state_before": {
+                "total_supply": 1_000_000, "initial_supply": 1_000_000,
+                "reserve": 2_000_000, "price": 1.0, "mint_limit": 5_000_000,
+            },
+            "state_after": {
+                "total_supply": 1_500_000, "reserve": 2_000_000,
+                "price": 1.0, "period_mint_amount": 500_000,
+            },
+        })
+        # 500_000 / 2_000_000 = 25% > 20% → 위반
+        self.assertIn("single_tx_reserve_impact", result.details["violations"])
+
+    def test_inv6_price_drop_15_percent(self):
+        """INV-6: 가격 하락 15% 초과 → MEDIUM 위반 (기존 20% 기준보다 강함)"""
+        result = self.engine.analyze({
+            "from": "0xAttacker", "amount": 100_000, "type": "swap",
+            "state_before": {
+                "total_supply": 1_000_000, "initial_supply": 1_000_000,
+                "reserve": 500_000, "price": 1.0, "mint_limit": 500_000,
+            },
+            "state_after": {
+                "total_supply": 1_000_000, "reserve": 500_000,
+                "price": 0.82,  # 18% 하락 > 15% → 위반
+                "period_mint_amount": 0,
+            },
+        })
+        self.assertIn("price_deviation_per_tx", result.details["violations"])
+
+    def test_inv7_mint_velocity_cap(self):
+        """INV-7: period_mint_amount / initial_supply > 30% → HIGH 위반"""
+        result = self.engine.analyze({
+            "from": "0xAttacker", "amount": 400_000, "type": "mint",
+            "state_before": {
+                "total_supply": 1_000_000, "initial_supply": 1_000_000,
+                "reserve": 500_000, "price": 1.0,
+                "mint_limit": 5_000_000,  # rate limit은 충분히 큼
+            },
+            "state_after": {
+                "total_supply": 1_400_000, "reserve": 500_000,
+                "price": 1.0,
+                "period_mint_amount": 400_000,  # 40% of initial > 30% → 위반
+            },
+        })
+        self.assertIn("cumulative_mint_velocity", result.details["violations"])
+
+    def test_inv8_collateral_violation(self):
+        """INV-8 [신규]: collateral < totalSupply × 95% → CRITICAL 위반"""
+        result = self.engine.analyze({
+            "from": "0xAttacker", "amount": 5_000_000, "type": "mint",
+            "state_before": {
+                "total_supply": 1_000_000, "initial_supply": 1_000_000,
+                "reserve": 500_000, "price": 1.0, "mint_limit": 10_000_000,
+                "collateral": 12_000_000,
+            },
+            "state_after": {
+                "total_supply": 6_000_000,   # 대량 발행
+                "reserve": 500_000, "price": 0.8,
+                "period_mint_amount": 5_000_000,
+                "collateral": 12_000_000,    # 담보 불변 → 6M × 0.95 = 5.7M > 12M? No
+                                             # 12M < 6M × 0.95 = 5.7M → collateral 충분
+                # 아래가 위반 케이스: collateral이 total_supply보다 작을 때
+            },
+        })
+        # 12_000_000 >= 6_000_000 × 0.95 = 5_700_000 → 위반 없음 (위 케이스)
+        # 실제 위반 케이스:
+        result2 = self.engine.analyze({
+            "from": "0xAttacker", "amount": 50_000_000, "type": "mint",
+            "state_before": {
+                "total_supply": 1_000_000, "initial_supply": 1_000_000,
+                "reserve": 500_000, "price": 1.0, "mint_limit": 100_000_000,
+                "collateral": 12_000_000,
+            },
+            "state_after": {
+                "total_supply": 51_000_000,  # 무담보 대량 발행
+                "reserve": 500_000, "price": 0.1,
+                "period_mint_amount": 50_000_000,
+                "collateral": 12_000_000,    # 12M < 51M × 0.95 = 48.45M → 위반
+            },
+        })
+        self.assertIn("collateral_backing_ratio", result2.details["violations"])
+        self.assertEqual(result2.threat_level, ThreatLevel.CRITICAL)
+
+    def test_inv8_collateral_missing_no_violation(self):
+        """INV-8: collateral 필드 없으면 skip (하위 호환성)"""
+        result = self.engine.analyze({
+            "from": "0xUser", "amount": 500, "type": "transfer",
+            "state_before": {
+                "total_supply": 1_000_000, "initial_supply": 1_000_000,
+                "reserve": 500_000, "price": 1.0, "mint_limit": 500_000,
+            },
+            "state_after": {
+                # collateral 필드 없음
+                "total_supply": 1_000_000, "reserve": 500_000,
+                "price": 1.0, "period_mint_amount": 0,
+            },
+        })
+        self.assertNotIn("collateral_backing_ratio", result.details["violations"])
+
+    def test_normal_all_invariants_pass(self):
+        """정상 거래: 8개 Invariant 모두 통과 (FP 없음)"""
+        result = self.engine.analyze({
+            "from": "0xUser", "amount": 100_000, "type": "mint",
+            "state_before": {
+                "total_supply": 10_000_000, "initial_supply": 10_000_000,
+                "reserve": 5_000_000, "price": 1.0,
+                "mint_limit": 5_000_000,
+                "period_mint_amount": 500_000,
+                "collateral": 12_000_000,
+            },
+            "state_after": {
+                "total_supply": 10_100_000,
+                "reserve": 5_000_000, "price": 1.0,
+                "period_mint_amount": 600_000,
+                "collateral": 12_200_000,  # 담보 비례 증가
+            },
+        })
+        self.assertEqual(result.threat_level, ThreatLevel.NONE)
+        self.assertEqual(len(result.details["violations"]), 0)
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════

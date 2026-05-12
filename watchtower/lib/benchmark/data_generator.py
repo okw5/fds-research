@@ -64,6 +64,9 @@ class BenchmarkDataGenerator:
         current_supply = 15_000_000
         reserve = 2_000_000
         price = 1.0
+        # collateral: current_supply 기반 120% (정상 담보 상태)
+        # ※ initial_supply 기준이면 12M < current_supply 15M → 시작부터 위반 발생
+        collateral = current_supply * 1.20
 
         state_before = {
             'total_supply': current_supply,
@@ -72,6 +75,7 @@ class BenchmarkDataGenerator:
             'price': price,
             'mint_limit': 1_000_000,
             'period_mint_amount': 500_000,
+            'collateral': collateral,          # [INV-8] 담보 총량 추가
             'is_sender_blacklisted': False
         }
         state_after = state_before.copy()
@@ -84,25 +88,32 @@ class BenchmarkDataGenerator:
                  params.get('total_amount',
                  params.get('loan_amount', 0))))))
 
-        # state_after 변화 모사
+        # state_after 변화 모사 (Post-execution State Check 기반)
         stype = scenario.scenario_type
         if stype == ScenarioType.INFINITE_MINT:
+            # 무담보 발행: totalSupply 증가 / collateral 불변 → INV-8 위반
             state_after['total_supply'] += amount
             state_after['period_mint_amount'] += amount
             state_after['price'] = max(0.01, price * (current_supply / state_after['total_supply']))
+            # collateral은 변화 없음 (→ INV-8: collateral 부족 자동 위반)
         elif stype == ScenarioType.RESERVE_DRAIN:
+            # 준비금 탈취: reserve 소진 + collateral 일부 감소 → INV-3/4 위반
             state_after['reserve'] = max(0, reserve - amount)
+            state_after['collateral'] = max(0, collateral - amount * 0.5)
         elif stype == ScenarioType.FLASH_LOAN_DEPEG:
+            # 플래시론 가격 조작: 가격 급락 → INV-6 위반
             expected_depeg = params.get('expected_depeg', 20) / 100.0
             state_after['price'] = price * (1.0 - expected_depeg)
         elif stype in (ScenarioType.NORMAL_TRANSFER, ScenarioType.LARGE_TRANSFER):
-            # 전송은 상태 변화 미미
+            # 정상 전송: 상태 변화 미미
             pass
         elif stype == ScenarioType.NORMAL_MINT:
+            # 정상 발행: totalSupply + collateral 비례 증가 → 위반 없음
             state_after['total_supply'] += amount
             state_after['period_mint_amount'] += amount
+            state_after['collateral'] = collateral + amount * 1.05  # 담보 초과 보유
         elif stype == ScenarioType.NORMAL_FLASH_LOAN:
-            # 정상 플래시론 차익거래: 차익은 남지만 price 붕괴는 없음 (< 5% 변화)
+            # 정상 플래시론: 미미한 가격 변화 (< 5%)
             state_after['price'] = price * 0.98
 
         params['state_before'] = state_before

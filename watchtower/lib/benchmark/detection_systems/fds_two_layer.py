@@ -26,13 +26,18 @@ try:
     from ..scenario import Scenario, ScenarioType, ScenarioLabel
     from ..feature_extractor import extract_features
     from ..anomaly_scorer import AnomalyScorer
+    from lib.engines.houston_lite import HoustonLiteInvariantChecker
 except ImportError:
     import sys
     import os
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from scenario import Scenario, ScenarioType, ScenarioLabel
-    from feature_extractor import extract_features
-    from anomaly_scorer import AnomalyScorer
+    # Ensure project root 'watchtower/' is in path or its parent
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    from watchtower.lib.benchmark.scenario import Scenario, ScenarioType, ScenarioLabel
+    from watchtower.lib.benchmark.feature_extractor import extract_features
+    from watchtower.lib.benchmark.anomaly_scorer import AnomalyScorer
+    from watchtower.lib.engines.houston_lite import HoustonLiteInvariantChecker
 
 
 class FDSTwoLayerSystem(DetectionSystem):
@@ -70,6 +75,9 @@ class FDSTwoLayerSystem(DetectionSystem):
         self._macro_decision_threshold = default_config.get('macro_decision_threshold', 0.48)
         # CRITICAL 오버라이드 임계값 (기본 0.90)
         self._override_threshold = default_config.get('override_threshold', 0.90)
+        
+        # Engine 3: 실제 HoustonLite 불변성 검사 엔진 로드
+        self._engine3 = HoustonLiteInvariantChecker()
 
     def detect(self, scenario: Scenario) -> Tuple[str, float]:
         """
@@ -278,8 +286,8 @@ class FDSTwoLayerSystem(DetectionSystem):
         # 2. 패턴 매칭 점수 (Engine 2: 메서드 패턴 + 공격 유형 규칙)
         pattern_score = self._check_pattern_match(scenario, features)
 
-        # 3. 금액 임계값 보조 점수
-        threshold_score = self._check_strict_threshold(scenario)
+        # 3. 금액 임계값/불변성 규칙 점수 (Engine 3: HoustonLite)
+        threshold_score = self._check_houston_invariant(scenario)
 
         # 4. 가중 앙상블 (설정 가능한 가중치 사용)
         w = self._engine_weights
@@ -323,39 +331,38 @@ class FDSTwoLayerSystem(DetectionSystem):
 
     # ── 보조 점수 메서드 (도메인 지식 기반, 확률 상수 미사용) ─────────────────
 
-    def _check_strict_threshold(self, scenario: Scenario) -> float:
+    def _check_houston_invariant(self, scenario: Scenario) -> float:
         """
-        엄격한 임계값 검사 (Macro 전용 보조 점수)
-        거래 금액과 임계값의 비율로부터 점수를 산출.
-        Ground Truth 레이블 참조 없이 금액 비율에만 의존하는 연속 점수.
-
-        ▶ 임계값 초과 시: sigmoid로 연속적으로 상승 (거액 거래도 높은 점수)
-        ▶ 임계값 미만 시: 비율 × 0.15 (proportional, 최대 0.15)
-
-        주의: 정상 고액 거래도 이 점수는 높게 나올 수 있으나,
-              anomaly_score (50%) 및 sig_score (30%)가 낮으면 최종 판정 NORMAL.
+        불변성 기반 규칙 검사 (Engine 3: HoustonLiteInvariantChecker 활용)
+        단순 비율이 아닌 시스템의 Core Invariants(발행량 초과, 금고 고갈 등)를 평가합니다.
+        
+        - 거액 공격(무한발행, 준비금탈취)은 CRITICAL 위반으로 높은 점수 반환
+        - 임계값 회피 공격은 규칙 이내에서 발생하므로 위반하지 않아 낮은 점수 반환
         """
-        import math
-        macro_threshold = self.config['macro_threshold']
-        amount = float(scenario.parameters.get('amount_per_block',
-                       scenario.parameters.get('amount_per_wallet',
-                       scenario.parameters.get('amount_per_recipient',
-                       scenario.parameters.get('start_amount',
-                       scenario.parameters.get('amount',
-                       scenario.parameters.get('loan_amount',
-                       scenario.parameters.get('total_amount', 0))))))))
-
-        # 화이트리스트 검사 통과 시 임계값 점수 강제 0 부여 (정상 플래시론 등 오탐 완전 차단)
+        tx_data = scenario.parameters.copy()
+        tx_data['amount'] = float(tx_data.get('amount_per_block',
+                            tx_data.get('amount',
+                            tx_data.get('total_amount', 0))))
+        tx_data['type'] = tx_data.get('method', 'transfer')
+        
+        # HoustonLite 평가 수행
+        result = self._engine3.analyze(tx_data)
+        
+        # ThreatLevel을 0.0 ~ 1.0 점수로 변환
+        level_scores = {
+            'CRITICAL': 0.95,
+            'HIGH':     0.75,
+            'MEDIUM':   0.55,
+            'LOW':      0.35,
+            'NONE':     0.10
+        }
+        
+        # 화이트리스트 검사 통과 시 예외 처리
         if scenario.parameters.get('is_whitelisted', False):
             return 0.0
-
-        ratio = amount / (macro_threshold + 1e-8)
-        if ratio >= 1.0:
-            # 임계값 초과: sigmoid 기반 연속 점수 (0.5~0.95)
-            return float(np.clip(1.0 / (1.0 + math.exp(-(ratio - 1.0))), 0.0, 0.95))
-        else:
-            # 임계값 미만: 비율 비례 낮은 점수 (0.0~0.15)
-            return float(np.clip(ratio * 0.15, 0.0, 0.15))
+            
+        base_score = level_scores.get(result.threat_level.name, 0.10)
+        return float(np.clip(base_score, 0.0, 1.0))
 
     def _check_pattern_match(self, scenario: Scenario,
                              features: Dict[str, float]) -> float:
