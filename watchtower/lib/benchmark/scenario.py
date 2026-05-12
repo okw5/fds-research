@@ -25,6 +25,7 @@ class ScenarioType(Enum):
     SYBIL_ATTACK = "sybil_attack"             # 분산 공격 (다중 지갑)
     GRADUAL_ESCALATION = "gradual_escalation" # 점진적 증가 공격
     CAMOUFLAGE = "camouflage"                 # 정상 위장 공격
+    SANDWICH_ATTACK = "sandwich_attack"         # 샌드위치 공격 (DEX 가격 조작)
     
     # 정상 유형
     NORMAL_TRANSFER = "normal_transfer"       # 일반 송금
@@ -116,7 +117,8 @@ ATTACK_TYPES = {
     ScenarioType.THRESHOLD_EVASION,
     ScenarioType.SYBIL_ATTACK,
     ScenarioType.GRADUAL_ESCALATION,
-    ScenarioType.CAMOUFLAGE
+    ScenarioType.CAMOUFLAGE,
+    ScenarioType.SANDWICH_ATTACK
 }
 
 NORMAL_TYPES = {

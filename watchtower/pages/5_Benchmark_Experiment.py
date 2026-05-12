@@ -53,10 +53,10 @@ st.sidebar.header("🔧 실험 설정")
 dataset_size = st.sidebar.slider(
     "데이터셋 크기",
     min_value=100,
-    max_value=2000,
+    max_value=5000,
     value=500,
     step=100,
-    help="테스트할 총 시나리오 수"
+    help="테스트할 총 시나리오 수 (07-28 아카이브 로드 시 크게 상향 가능)"
 )
 
 attack_ratio = st.sidebar.slider(
@@ -87,18 +87,18 @@ st.sidebar.divider()
 st.sidebar.subheader("📦 데이터셋 소스")
 dataset_source = st.sidebar.radio(
     "데이터셋 유형 선택",
-    options=["시뮬레이션", "실제 컨트랙트", "하이브리드 (혼합)"],
+    options=["시뮬레이션", "07-28 실제 TX 데이터", "하이브리드 (혼합)"],
     index=2,
     help=(
         "• 시뮬레이션: 무작위 파라미터 기반 가상 시나리오\n"
-        "• 실제 컨트랙트: sample_data의 91개 실제 .sol 파일 정적 분석\n"
-        "• 하이브리드: 시뮬레이션 + 실제 컨트랙트 결합 (가장 객관적)"
+        "• 07-28 실제 TX 데이터: sample_data/archive 내 실제 이더리움 트랜잭션 덤프 (약 3,100건)\n"
+        "• 하이브리드: 시뮬레이션 + 실제 TX 결합"
     ),
 )
-if dataset_source == "실제 컨트랙트":
-    st.sidebar.info("📌 50개 악성(positive) + 41개 정상(negative) = 91개 실제 Ethereum 스마트 컨트랙트")
+if dataset_source == "07-28 실제 TX 데이터":
+    st.sidebar.info("📌 (필수) 07-28 트랜잭션 아카이브에서 샌드위치 공격 등 실제 데이터를 추출합니다.")
 elif dataset_source == "하이브리드 (혼합)":
-    st.sidebar.info("📌 시뮬레이션 시나리오에 91개 실제 컨트랙트를 추가하여 객관성을 극대화합니다.")
+    st.sidebar.info("📌 시뮬레이션 시나리오와 실제 트랜잭션(07-28) 데이터를 결합합니다.")
 
 random_seed = st.sidebar.number_input(
     "랜덤 시드",
@@ -133,23 +133,35 @@ with col_gen:
                     attack_ratio=attack_ratio,
                     network_mix=include_network_mix
                 )
-            elif dataset_source == "실제 컨트랙트":
-                dataset = generator.get_real_contract_dataset(shuffle=True)
+            elif dataset_source == "07-28 실제 TX 데이터":
+                dataset = generator.get_0728_real_transaction_dataset(limit=dataset_size, shuffle=True)
             else:  # 하이브리드
-                dataset = generator.get_hybrid_dataset(
-                    total_simulated=dataset_size,
+                simulated_count = int(dataset_size * 0.7)  # 시뮬레이션 비중
+                tx_dataset = generator.get_0728_real_transaction_dataset(limit=dataset_size - simulated_count, shuffle=True)
+                simulated_dataset = generator.get_mixed_dataset(
+                    total_count=simulated_count,
                     attack_ratio=attack_ratio,
-                    network_mix=include_network_mix
+                    network_mix=include_network_mix,
+                    shuffle=False
                 )
+                dataset = simulated_dataset + tx_dataset
+                if True:
+                    import random
+                    random.shuffle(dataset)
 
             st.session_state.benchmark_dataset = dataset
 
-            # 실제 컨트랙트 통계 표시
-            real_count = sum(1 for s in dataset if s.parameters.get('is_real_contract', False))
-            if real_count > 0:
-                st.success(f"✅ {len(dataset)}개 시나리오 생성 완료! (실제 컨트랙트: {real_count}개 포함)")
-            else:
-                st.success(f"✅ {len(dataset)}개 시나리오 생성 완료!")
+            # 데이터셋 통계 계산
+            total_count = len(dataset)
+            attack_count = sum(1 for s in dataset if s.label.value == "ATTACK")
+            normal_count = total_count - attack_count
+            real_tx_count = sum(1 for s in dataset if s.parameters.get('method') == 'real_tx')
+
+            msg = f"✅ {total_count}개 시나리오 생성 완료! (정상: {normal_count}개, 공격: {attack_count}개)"
+            if real_tx_count > 0:
+                msg += f" - [07-28 실제 TX: {real_tx_count}개 포함]"
+                
+            st.success(msg)
 
 with col_preview:
     if st.session_state.benchmark_dataset:
@@ -337,6 +349,7 @@ if st.session_state.benchmark_results:
         'reserve_drain': '준비금 탈취',
         'flash_loan_depeg': '플래시론',
         'sybil_attack': '시빌 공격',
+        'sandwich_attack': '샌드위치 공격',
     }
     preservation_data = []
     for name, collector in collectors.items():

@@ -74,7 +74,7 @@ class FDSEngine2System(FDSSingleLayerSystem):
         
         # 특정 서명 공격유형에 민감하게 작용
         pattern_bonus = 0.0
-        if scenario.scenario_type in [ScenarioType.FLASH_LOAN_DEPEG, ScenarioType.INFINITE_MINT]:
+        if scenario.scenario_type in [ScenarioType.FLASH_LOAN_DEPEG, ScenarioType.INFINITE_MINT, ScenarioType.SANDWICH_ATTACK]:
             pattern_bonus = 0.3
             
         avg_score = min(1.0, threshold_score + pattern_bonus)

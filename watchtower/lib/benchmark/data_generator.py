@@ -723,3 +723,89 @@ class BenchmarkDataGenerator:
         if shuffle:
             random.shuffle(dataset)
         return dataset
+
+    def get_0728_real_transaction_dataset(self, limit: int = 1000, shuffle: bool = True) -> List[Scenario]:
+        """
+        sample_data/archive/07-28의 실제 트랜잭션 데이터를 읽어 반환합니다.
+        
+        Args:
+            limit: 최대 로드 파일 수 제한
+            shuffle: 셔플 여부
+        """
+        import glob
+        
+        base = os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__))
+        )))
+        archive_path = os.path.join(base, "sample_data", "archive", "07-28")
+        
+        if not os.path.isdir(archive_path):
+            print(f"[BenchmarkDataGenerator] {archive_path} 경로를 찾을 수 없습니다.")
+            return []
+            
+        json_files = glob.glob(os.path.join(archive_path, "*.json"))
+        if shuffle:
+            random.shuffle(json_files)
+            
+        if limit > 0:
+            json_files = json_files[:limit]
+            
+        scenarios = []
+        for file_path in json_files:
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    
+                # 샌드위치 공격 판별
+                is_sandwich_attacker = False
+                summary = data.get('summary', {})
+                types_list = summary.get('types', [])
+                
+                if any(t in ['Sandwich', 'PartialSandwich'] for t in types_list):
+                    is_sandwich_attacker = True
+                
+                token_flows = data.get('tokenFlows', [])
+                if not is_sandwich_attacker:
+                    for flow in token_flows:
+                        if 'SandwichAttacker' in flow.get('tags', []):
+                            is_sandwich_attacker = True
+                            break
+                            
+                profit_str = summary.get('profit', 0)
+                try:
+                    profit = float(profit_str)
+                except (ValueError, TypeError):
+                    profit = 0.0
+                profit_wei = int(profit * 1e18) 
+                
+                amount = profit if profit > 0 else 500000.0  # 정규화된 금액 사용
+                
+                scenario_type = ScenarioType.SANDWICH_ATTACK if is_sandwich_attacker else ScenarioType.NORMAL_FLASH_LOAN
+                label = ScenarioLabel.ATTACK if is_sandwich_attacker else ScenarioLabel.NORMAL
+                
+                scenario = Scenario(
+                    id=os.path.basename(file_path)[:8],
+                    label=label,
+                    scenario_type=scenario_type,
+                    name=f"실제 TX ({scenario_type.value})",
+                    description=f"07-28 실제 TX 분석 데이터",
+                    parameters={
+                        'amount': amount,
+                        'profit_wei': profit_wei,
+                        'method': 'real_tx',
+                        'is_whitelisted': not is_sandwich_attacker,
+                        'has_valid_signature': True # 실제 트랜잭션은 유효 서명 존재
+                    },
+                    network_condition='normal',
+                    expected_detection=is_sandwich_attacker
+                )
+                
+                # Mock 주입
+                self._inject_state_mock(scenario)
+                scenarios.append(scenario)
+                
+            except Exception as e:
+                continue
+                
+        return scenarios
+

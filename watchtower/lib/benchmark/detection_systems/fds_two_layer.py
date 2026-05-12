@@ -60,6 +60,17 @@ class FDSTwoLayerSystem(DetectionSystem):
         anomaly_method = default_config.get('anomaly_method', 'zscore')
         self._scorer = AnomalyScorer(method=anomaly_method)
 
+        # 앱상블 가중치 (실험 튜닝용, 기본값 유지)
+        self._engine_weights = default_config.get('engine_weights', {
+            'engine1_anomaly': 0.50,   # Engine1: SequenceAnomaly (anomaly_score)
+            'engine2_signature': 0.30, # Engine2: FlashLoanRule (sig_score)
+            'engine3_threshold': 0.20, # Engine3: HoustonLite (threshold_score)
+        })
+        # Macro 관정 임계값 (기본 0.48)
+        self._macro_decision_threshold = default_config.get('macro_decision_threshold', 0.48)
+        # CRITICAL 오버라이드 임계값 (기본 0.90)
+        self._override_threshold = default_config.get('override_threshold', 0.90)
+
     def detect(self, scenario: Scenario) -> Tuple[str, float]:
         """
         FDS 2계층 탐지 — Macro/Micro 엔진 완전 분리
@@ -240,6 +251,7 @@ class FDSTwoLayerSystem(DetectionSystem):
             ScenarioType.INFINITE_MINT,
             ScenarioType.RESERVE_DRAIN,
             ScenarioType.FLASH_LOAN_DEPEG,   # 공격 플래시론만 Macro
+            ScenarioType.SANDWICH_ATTACK,    # 샌드위치 공격 (DEX 가격 조작) — Macro로 분류
             # NORMAL_FLASH_LOAN은 Macro 제외 — 화이트리스트 정상 거래이므로 Micro 경로 처리
             ScenarioType.LIQUIDITY_ADD,
         }
@@ -269,18 +281,25 @@ class FDSTwoLayerSystem(DetectionSystem):
         # 3. 금액 임계값 보조 점수
         threshold_score = self._check_strict_threshold(scenario)
 
-        # 4. 가중 앙상블
+        # 4. 가중 앙상블 (설정 가능한 가중치 사용)
+        w = self._engine_weights
+        w1 = w.get('engine1_anomaly', 0.50)
+        w2 = w.get('engine2_signature', 0.30)
+        w3 = w.get('engine3_threshold', 0.20)
+        total_w = w1 + w2 + w3
+        if total_w > 0:
+            w1, w2, w3 = w1/total_w, w2/total_w, w3/total_w
         final_score = (
-            anomaly_score   * 0.50 +
-            sig_score       * 0.30 +
-            threshold_score * 0.20
+            anomaly_score   * w1 +
+            sig_score       * w2 +
+            threshold_score * w3
         )
 
         # 5. 소량 현실 노이즈 (오프체인 검증 지연, 멤풀 재조합 등)
         noise = float(np.random.normal(0.0, 0.03))
         final_score = float(np.clip(final_score + noise, 0.0, 1.0))
 
-        return 'ATTACK' if final_score > 0.48 else 'NORMAL'
+        return 'ATTACK' if final_score > self._macro_decision_threshold else 'NORMAL'
 
     def _detect_micro_layer(self, scenario: Scenario,
                             features: Dict[str, float]) -> str:

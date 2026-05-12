@@ -139,6 +139,7 @@ class DetectionSystem(ABC):
         'threshold_evasion': 0.03,  # 소액 반복 → 느림
         'gradual_escalation': 0.04, # 점진 증가 → 느림
         'camouflage':       0.02,   # 위장 → 느림
+        'sandwich_attack':  0.09,   # 샌드위치 → 플래시론과 동일 (DEX 가격 조작)
     }
 
     # 일일 정상 거래량 (달러) — 서비스 중단 기회비용 계산용
