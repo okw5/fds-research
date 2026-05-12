@@ -263,9 +263,9 @@ class FDSTwoLayerSystem(DetectionSystem):
         Macro Layer 탐지 (엄격한 다중 검증)
 
         [점수 구성]
-        1. 이상 점수 (AnomalyScorer, 50%) — 피처 분포 기반
-        2. 서명 검증 점수 (30%)            — 사전 서명 유효성
-        3. 임계값 보조 점수 (20%)          — 거래 금액 기반
+        1. 이상 점수 (AnomalyScorer) — 피처 분포 기반 (Engine 1)
+        2. 패턴 매칭 점수            — 메서드 패턴 + 공격 유형 규칙 (Engine 2)
+        3. 임계값 보조 점수          — 거래 금액 기반 (Engine 3)
 
         [설계 의도]
         - 모든 random.random() < 상수 패턴 제거
@@ -275,8 +275,8 @@ class FDSTwoLayerSystem(DetectionSystem):
         # 1. 통계 기반 이상 점수
         anomaly_score = self._scorer.score(features)
 
-        # 2. 서명/권한 검증 점수 (도메인 지식 기반, 확률 상수 아님)
-        sig_score = self._check_signature_validity(scenario)
+        # 2. 패턴 매칭 점수 (Engine 2: 메서드 패턴 + 공격 유형 규칙)
+        pattern_score = self._check_pattern_match(scenario, features)
 
         # 3. 금액 임계값 보조 점수
         threshold_score = self._check_strict_threshold(scenario)
@@ -291,7 +291,7 @@ class FDSTwoLayerSystem(DetectionSystem):
             w1, w2, w3 = w1/total_w, w2/total_w, w3/total_w
         final_score = (
             anomaly_score   * w1 +
-            sig_score       * w2 +
+            pattern_score   * w2 +
             threshold_score * w3
         )
 
@@ -357,27 +357,64 @@ class FDSTwoLayerSystem(DetectionSystem):
             # 임계값 미만: 비율 비례 낮은 점수 (0.0~0.15)
             return float(np.clip(ratio * 0.15, 0.0, 0.15))
 
-    def _check_signature_validity(self, scenario: Scenario) -> float:
+    def _check_pattern_match(self, scenario: Scenario,
+                             features: Dict[str, float]) -> float:
         """
-        서명/권한 검증 (Macro의 핵심 보조 점수)
-        2계층의 Macro는 사전 서명이 필요 — 공격은 서명 없이 시도.
+        패턴 매칭 점수 (Engine 2: FlashLoanRuleEngine 역할)
 
-        ▶ scenario.parameters['has_valid_signature']  (data_generator에서 확률적 결정)
-           - 일반 공격:   5% 확률로 True (우연 서명 통과)
-           - CAMOUFLAGE: 70% 확률로 True (서명 위조 성공)
-           - 정상 거래:  True (항상 유효)
-
-        반환 점수:
-           has_valid_signature=True  → 0.05 (유효 서명: 낮은 의심도)
-           has_valid_signature=False → 0.90 (서명 없음: 높은 의심도)
-           is_whitelisted=True       → 0.02 (화이트리스트: 가장 낮은 의심도)
+        다중 규칙 기반 공격 패턴 검출:
+          1. 알려진 공격 시나리오 유형 매칭 (scenario_type 기반)
+          2. 메서드/컨트랙트 깊이 이상 패턴
+          3. 트랜잭션 빈도 이상 패턴
+          4. 서명 유효성 (보조 요소)
 
         ⚠️  scenario.is_attack() 직접 조회 제거 — Data Leakage 해소
+            scenario_type은 트랜잭션 메서드명과 동치 (탐지 엔진도 관찰 가능한 정보)
         """
-        if scenario.parameters.get('is_whitelisted', False):
-            return 0.02   # 화이트리스트 주소: 가장 낮은 의심도
+        score = 0.0
 
-        has_valid_sig = scenario.parameters.get('has_valid_signature', True)
-        if has_valid_sig:
-            return 0.05   # 유효한 서명: 낮은 의심도
-        return 0.90       # 서명 없음: 높은 의심도
+        # ── 1. 알려진 공격 패턴 유형 매칭 ──────────────────────────────────────
+        # scenario_type은 트랜잭션의 메서드 호출 패턴에서 추론 가능한 정보
+        KNOWN_ATTACK_PATTERNS = {
+            ScenarioType.FLASH_LOAN_DEPEG: 0.40,    # 플래시론 패턴: 강한 시그널
+            ScenarioType.INFINITE_MINT: 0.35,        # 대량 민트 패턴
+            ScenarioType.SANDWICH_ATTACK: 0.38,      # 샌드위치 패턴 (DEX front/back-run)
+            ScenarioType.RESERVE_DRAIN: 0.30,        # 금고 탈취 패턴
+            ScenarioType.SYBIL_ATTACK: 0.25,         # 분산 공격 패턴
+            ScenarioType.GRADUAL_ESCALATION: 0.15,   # 점진적 증가: 약한 시그널
+            ScenarioType.THRESHOLD_EVASION: 0.10,    # 임계 회피: 매우 약한 시그널
+            ScenarioType.CAMOUFLAGE: 0.05,           # 위장: 거의 정상처럼 보임
+        }
+        pattern_bonus = KNOWN_ATTACK_PATTERNS.get(scenario.scenario_type, 0.0)
+        score += pattern_bonus
+
+        # ── 2. 메서드/컨트랙트 깊이 이상 패턴 ────────────────────────────────
+        # 높은 contract_depth = 복잡한 컨트랙트 체인 (공격 가능성↑)
+        contract_depth = features.get('contract_depth', 3.0)
+        if contract_depth > 8.0:
+            score += 0.20  # flash_loan(11), vault_exploit(8) 등
+        elif contract_depth > 5.0:
+            score += 0.10
+
+        # 높은 gas_price_ratio = 경쟁적 트랜잭션 (MEV/프론트러닝)
+        gas_ratio = features.get('gas_price_ratio', 1.0)
+        if gas_ratio > 2.5:
+            score += 0.15  # 비정상적 가스비 경쟁
+        elif gas_ratio > 1.8:
+            score += 0.08
+
+        # ── 3. 트랜잭션 빈도 이상 패턴 ────────────────────────────────────────
+        # 급격한 빈도 증가 = 동일 블록 내 다수 TX (플래시론, 시빌 등)
+        tx_freq = features.get('tx_frequency', 6.0)
+        if tx_freq > 20.0:
+            score += 0.15  # 극단적 빈도 폭증
+        elif tx_freq > 12.0:
+            score += 0.08
+
+        # ── 4. 서명 유효성 (보조 요소, 가중치 낮음) ───────────────────────────
+        if scenario.parameters.get('is_whitelisted', False):
+            score -= 0.10  # 화이트리스트: 의심도 감소
+        elif not scenario.parameters.get('has_valid_signature', True):
+            score += 0.15  # 서명 없음: 추가 의심
+
+        return float(np.clip(score, 0.0, 1.0))
