@@ -132,14 +132,14 @@ class DetectionSystem(ABC):
     # 높을수록 빠른 시간 안에 피해가 기하급수적으로 늘어남
     # =========================================================================
     ATTACK_VELOCITY = {
-        'infinite_mint':    0.18,   # 대량 발행 → 토큰 가치 즉시 희석, 매우 빠름
-        'reserve_drain':    0.14,   # 금고 고갈 → 준비금 비례 손실, 빠름
-        'flash_loan_depeg': 0.09,   # 플래시론 → 블록 단위 진행, 중간
-        'sybil_attack':     0.05,   # 분산 공격 → 상대적으로 느림
-        'threshold_evasion': 0.03,  # 소액 반복 → 느림
-        'gradual_escalation': 0.04, # 점진 증가 → 느림
-        'camouflage':       0.02,   # 위장 → 느림
-        'sandwich_attack':  0.09,   # 샌드위치 → 플래시론과 동일 (DEX 가격 조작)
+        'infinite_mint':      0.10,
+        'reserve_drain':      0.10,
+        'flash_loan_depeg':   0.10,
+        'sybil_attack':       0.10,
+        'threshold_evasion':  0.10,
+        'gradual_escalation': 0.10,
+        'camouflage':         0.10,
+        'sandwich_attack':    0.10,
     }
 
     # 일일 정상 거래량 (달러) — 서비스 중단 기회비용 계산용

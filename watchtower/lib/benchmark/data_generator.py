@@ -119,20 +119,7 @@ class BenchmarkDataGenerator:
         params['state_before'] = state_before
         params['state_after'] = state_after
 
-    @staticmethod
-    def _attack_signature(scenario_type=None, evasion_chance: float = 0.05) -> bool:
-        """
-        공격 시나리오의 서명 유효성을 확률적으로 결정.
 
-        - CAMOUFLAGE: 70% 확률로 서명 위조 성공(True) → 위장 공격이 어려운 이유
-        - 일반 공격:  5% 확률로 우연히 서명 통과(True) → 극소수 FN 자연 발생
-
-        이 파라미터를 탐지 엔진이 scenario.is_attack() 대신 참조하면
-        Ground Truth 직접 조회(Data Leakage)가 제거됩니다.
-        """
-        if scenario_type == ScenarioType.CAMOUFLAGE:
-            return random.random() < 0.70   # 위장 공격: 70% 서명 위조
-        return random.random() < evasion_chance  # 일반 공격: 5% 우연 통과
 
     def generate_infinite_mint_attack(self, 
                                       amount_range: tuple = (100_000, 5_000_000),
@@ -148,7 +135,6 @@ class BenchmarkDataGenerator:
                 'amount': amount,
                 'method': 'direct_mint',
                 'blocks': 1,
-                'has_valid_signature': self._attack_signature(ScenarioType.INFINITE_MINT),
             },
             network_condition=network,
             expected_detection=True
@@ -172,7 +158,6 @@ class BenchmarkDataGenerator:
                 'method': 'direct_mint',
                 'blocks': 1,
                 'is_catastrophic': True,
-                'has_valid_signature': self._attack_signature(ScenarioType.INFINITE_MINT),
             },
             network_condition=network,
             expected_detection=True
@@ -197,7 +182,6 @@ class BenchmarkDataGenerator:
                     'target': 'vault',
                     'is_burst': True,
                     'burst_index': i,
-                    'has_valid_signature': self._attack_signature(ScenarioType.RESERVE_DRAIN),
                 },
                 network_condition=network,
                 expected_detection=True
@@ -218,7 +202,6 @@ class BenchmarkDataGenerator:
                 'amount': amount,
                 'method': 'vault_exploit',
                 'target': 'vault',
-                'has_valid_signature': self._attack_signature(ScenarioType.RESERVE_DRAIN),
             },
             network_condition=network,
             expected_detection=True
@@ -239,7 +222,6 @@ class BenchmarkDataGenerator:
                 'loan_amount': loan_amount,
                 'expected_depeg': depeg_percent,
                 'method': 'dex_manipulation',
-                'has_valid_signature': self._attack_signature(ScenarioType.FLASH_LOAN_DEPEG),
             },
             network_condition=network,
             expected_detection=True
@@ -263,7 +245,6 @@ class BenchmarkDataGenerator:
                 'total_amount': total_amount,
                 'blocks': blocks,
                 'evasion_ratio': evasion_ratio,
-                'has_valid_signature': self._attack_signature(ScenarioType.THRESHOLD_EVASION),
             },
             network_condition=network,
             expected_detection=True
@@ -284,7 +265,6 @@ class BenchmarkDataGenerator:
                 'wallet_count': wallet_count,
                 'amount_per_wallet': amount_per_wallet,
                 'total_amount': total_amount,
-                'has_valid_signature': self._attack_signature(ScenarioType.SYBIL_ATTACK),
             },
             network_condition=network,
             expected_detection=True
@@ -309,7 +289,6 @@ class BenchmarkDataGenerator:
                 'blocks': blocks,
                 'amounts': amounts,
                 'total_amount': total,
-                'has_valid_signature': self._attack_signature(ScenarioType.GRADUAL_ESCALATION),
             },
             network_condition=network,
             expected_detection=True
@@ -334,7 +313,6 @@ class BenchmarkDataGenerator:
                 'amount_per_block': amount_per_block,
                 'blocks': blocks,
                 'total_amount': total,
-                'has_valid_signature': self._attack_signature(ScenarioType.CAMOUFLAGE),
             },
             network_condition=network,
             expected_detection=False
@@ -357,7 +335,6 @@ class BenchmarkDataGenerator:
             parameters={
                 'amount': amount,
                 'method': 'transfer',
-                'has_valid_signature': True,  # 정상 거래: 항상 유효한 서명
             },
             network_condition=network,
             expected_detection=False
@@ -377,7 +354,6 @@ class BenchmarkDataGenerator:
                 'amount': amount,
                 'method': 'transfer',
                 'is_verified': True,
-                'has_valid_signature': True,
             },
             network_condition=network,
             expected_detection=False
@@ -397,7 +373,6 @@ class BenchmarkDataGenerator:
                 'amount': amount,
                 'method': 'addLiquidity',
                 'is_whitelisted': True,
-                'has_valid_signature': True,
             },
             network_condition=network,
             expected_detection=False
@@ -419,7 +394,6 @@ class BenchmarkDataGenerator:
                 'amount_per_recipient': amount_per_recipient,
                 'total_amount': total,
                 'method': 'batch_transfer',
-                'has_valid_signature': True,
             },
             network_condition=network,
             expected_detection=False
@@ -446,7 +420,6 @@ class BenchmarkDataGenerator:
                 'amount': total_amount,
                 'is_micro_swarm': True,
                 'below_threshold': True,
-                'has_valid_signature': self._attack_signature(ScenarioType.SYBIL_ATTACK),
             },
             network_condition=network,
             expected_detection=True
@@ -466,7 +439,6 @@ class BenchmarkDataGenerator:
                 'amount': amount,
                 'method': 'mint',
                 'collateral_verified': True,
-                'has_valid_signature': True,
             },
             network_condition=network,
             expected_detection=False
@@ -488,7 +460,6 @@ class BenchmarkDataGenerator:
                 'loan_amount': loan_amount,
                 'method': 'flash_loan',
                 'is_whitelisted': True,  # 차익거래 컨트랙트 사전 승인(화이트리스트)
-                'has_valid_signature': True,
             },
             network_condition=network,
             expected_detection=False
@@ -805,7 +776,6 @@ class BenchmarkDataGenerator:
                         'profit_wei': profit_wei,
                         'method': 'real_tx',
                         'is_whitelisted': not is_sandwich_attacker,
-                        'has_valid_signature': True # 실제 트랜잭션은 유효 서명 존재
                     },
                     network_condition='normal',
                     expected_detection=is_sandwich_attacker

@@ -373,7 +373,7 @@ class FDSTwoLayerSystem(DetectionSystem):
           1. 알려진 공격 시나리오 유형 매칭 (scenario_type 기반)
           2. 메서드/컨트랙트 깊이 이상 패턴
           3. 트랜잭션 빈도 이상 패턴
-          4. 서명 유효성 (보조 요소)
+          4. 화이트리스트 (보조 요소)
 
         ⚠️  scenario.is_attack() 직접 조회 제거 — Data Leakage 해소
             scenario_type은 트랜잭션 메서드명과 동치 (탐지 엔진도 관찰 가능한 정보)
@@ -418,10 +418,8 @@ class FDSTwoLayerSystem(DetectionSystem):
         elif tx_freq > 12.0:
             score += 0.08
 
-        # ── 4. 서명 유효성 (보조 요소, 가중치 낮음) ───────────────────────────
+        # ── 4. 화이트리스트 (보조 요소) ────────────────────────────────────────
         if scenario.parameters.get('is_whitelisted', False):
             score -= 0.10  # 화이트리스트: 의심도 감소
-        elif not scenario.parameters.get('has_valid_signature', True):
-            score += 0.15  # 서명 없음: 추가 의심
 
         return float(np.clip(score, 0.0, 1.0))
