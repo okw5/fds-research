@@ -435,11 +435,12 @@ if st.session_state.opt_grid_results is not None:
     # ── 2-A. 최적 조합 Top 10 ────────────────────────────────────────────────
     st.subheader("🏆 ① F1-Score 기준 최적 가중치 조합 Top 10")
     
-    top_f1 = grid_df.nlargest(10, 'F1').reset_index(drop=True)
+    best_weights_df = grid_df.loc[grid_df.groupby(['E1_Weight', 'E2_Weight', 'E3_Weight'])['F1'].idxmax()]
+    top_f1 = best_weights_df.nlargest(10, 'F1').reset_index(drop=True)
     top_f1.index = top_f1.index + 1  # 1부터 시작
     
     st.dataframe(
-        top_f1[['E1_Weight', 'E2_Weight', 'E3_Weight', 'Override_Threshold',
+        top_f1[['E1_Weight', 'E2_Weight', 'E3_Weight',
                 'F1', 'Precision', 'Recall', 'FPR', 'SecurityScore',
                 'FN_FinancialLoss', 'FP_BlockedVolume']].style
             .highlight_max(subset=['F1'], color='#d4edda')
@@ -453,24 +454,24 @@ if st.session_state.opt_grid_results is not None:
         use_container_width=True
     )
     
-    best_f1_row = grid_df.loc[grid_df['F1'].idxmax()]
+    best_f1_row = top_f1.loc[1] if not top_f1.empty else grid_df.loc[grid_df['F1'].idxmax()]
     
-    col_b1, col_b2, col_b3, col_b4 = st.columns(4)
+    col_b1, col_b2, col_b3 = st.columns(3)
     col_b1.metric("🥇 최적 F1", f"{best_f1_row['F1']:.4f}")
     col_b2.metric("E1/E2/E3", f"{best_f1_row['E1_Weight']:.2f}/{best_f1_row['E2_Weight']:.2f}/{best_f1_row['E3_Weight']:.2f}")
-    col_b3.metric("Override", f"{best_f1_row['Override_Threshold']:.2f}")
-    col_b4.metric("보안점수", f"{best_f1_row['SecurityScore']:.4f}")
+    col_b3.metric("보안점수", f"{best_f1_row['SecurityScore']:.4f}")
     
     st.divider()
     
     # ── 2-B. 보안 점수 기준 Top 10 ───────────────────────────────────────────
     st.subheader("🛡️ ② 보안점수 (F1×(1-FPR)) 기준 최적 가중치 Top 10")
     
-    top_sec = grid_df.nlargest(10, 'SecurityScore').reset_index(drop=True)
+    best_sec_weights_df = grid_df.loc[grid_df.groupby(['E1_Weight', 'E2_Weight', 'E3_Weight'])['SecurityScore'].idxmax()]
+    top_sec = best_sec_weights_df.nlargest(10, 'SecurityScore').reset_index(drop=True)
     top_sec.index = top_sec.index + 1
     
     st.dataframe(
-        top_sec[['E1_Weight', 'E2_Weight', 'E3_Weight', 'Override_Threshold',
+        top_sec[['E1_Weight', 'E2_Weight', 'E3_Weight',
                  'SecurityScore', 'F1', 'Precision', 'Recall', 'FPR']].style
             .highlight_max(subset=['SecurityScore'], color='#d4edda')
             .format({
@@ -480,13 +481,12 @@ if st.session_state.opt_grid_results is not None:
         use_container_width=True
     )
     
-    best_sec_row = grid_df.loc[grid_df['SecurityScore'].idxmax()]
+    best_sec_row = top_sec.loc[1] if not top_sec.empty else grid_df.loc[grid_df['SecurityScore'].idxmax()]
     
-    col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+    col_s1, col_s2, col_s3 = st.columns(3)
     col_s1.metric("🥇 최적 보안점수", f"{best_sec_row['SecurityScore']:.4f}")
     col_s2.metric("E1/E2/E3", f"{best_sec_row['E1_Weight']:.2f}/{best_sec_row['E2_Weight']:.2f}/{best_sec_row['E3_Weight']:.2f}")
-    col_s3.metric("Override", f"{best_sec_row['Override_Threshold']:.2f}")
-    col_s4.metric("F1", f"{best_sec_row['F1']:.4f}")
+    col_s3.metric("F1", f"{best_sec_row['F1']:.4f}")
     
     st.divider()
     
@@ -746,7 +746,24 @@ if run_engine_analysis and st.session_state.opt_dataset:
         
         analysis_df = pd.DataFrame(rows)
         st.session_state.opt_engine_analysis = analysis_df
-    st.success("✅ 엔진별 공격유형 분석 완료!")
+        st.session_state.opt_engine_analysis_weights = (nw1, nw2, nw3)
+        
+        # --- 추가: 현재 가중치에 대한 Override 최적값 ---
+        ov_results = []
+        ov_candidates = np.arange(0.10, 1.01, 0.01)
+        for ov_cand in ov_candidates:
+            res = run_experiment(
+                st.session_state.opt_dataset,
+                (nw1, nw2, nw3),
+                round(ov_cand, 2),
+                macro_decision_threshold,
+                seed=random_seed
+            )
+            res['Override_Threshold'] = round(ov_cand, 2)
+            ov_results.append(res)
+        st.session_state.opt_engine_analysis_ov = pd.DataFrame(ov_results)
+        
+    st.success("✅ 엔진별 공격유형 분석 및 최적 Override 탐색 완료!")
 
 
 # ── 엔진별 분석 결과 렌더링 ──────────────────────────────────────────────────
@@ -865,6 +882,42 @@ if st.session_state.opt_engine_analysis is not None:
             worst_str = ", ".join([f"{r['유형']} ({r[eng_col]:.0%})" for _, r in worst.iterrows()])
             st.markdown(f"- 🟢 강점: {best_str}")
             st.markdown(f"- 🔴 약점: {worst_str}")
+
+        # ── 3-F. 최적 Override Threshold ─────────────────────────────────────
+        if 'opt_engine_analysis_ov' in st.session_state and st.session_state.opt_engine_analysis_ov is not None:
+            ov_df = st.session_state.opt_engine_analysis_ov
+            nw_vals = st.session_state.get('opt_engine_analysis_weights', (0.33, 0.33, 0.34))
+            
+            best_f1 = ov_df.loc[ov_df['F1'].idxmax()]
+            best_sec = ov_df.loc[ov_df['SecurityScore'].idxmax()]
+            
+            st.divider()
+            st.subheader("⑥ 현재 가중치 기반 최적 Override Threshold")
+            st.markdown(f"설정된 가중치 조합(**E1**={nw_vals[0]:.2f}, **E2**={nw_vals[1]:.2f}, **E3**={nw_vals[2]:.2f}) 하에서 오버라이드 임계값(`override_Threshold`)을 0.10~1.00 범위 내에서 테스트한 결과입니다.")
+            
+            col_o1, col_o2, col_o3 = st.columns(3)
+            col_o1.metric("🥇 F1 기준 최적 Override", f"{best_f1['Override_Threshold']:.2f}", f"F1: {best_f1['F1']:.4f}", delta_color="off")
+            col_o2.metric("🛡️ 보안점수 기준 최적 Override", f"{best_sec['Override_Threshold']:.2f}", f"보안점수: {best_sec['SecurityScore']:.4f}", delta_color="off")
+            
+            # 꺾은선 그래프
+            fig_ov_line = go.Figure()
+            fig_ov_line.add_trace(go.Scatter(x=ov_df['Override_Threshold'], y=ov_df['F1'], mode='lines+markers', name='F1-Score', line=dict(color='#3498db')))
+            fig_ov_line.add_trace(go.Scatter(x=ov_df['Override_Threshold'], y=ov_df['SecurityScore'], mode='lines+markers', name='보안점수', line=dict(color='#2ecc71')))
+            fig_ov_line.update_layout(
+                title='Override Threshold 변동에 따른 성능 변화',
+                xaxis_title='Override Threshold',
+                yaxis_title='Score',
+                height=350,
+                plot_bgcolor='rgba(240,248,255,1)'
+            )
+            st.plotly_chart(fig_ov_line, use_container_width=True)
+            
+            st.dataframe(
+                ov_df[['Override_Threshold', 'F1', 'SecurityScore']].style
+                    .highlight_max(subset=['F1', 'SecurityScore'], color='#d4edda')
+                    .format({'F1': '{:.4f}', 'SecurityScore': '{:.4f}'}),
+                use_container_width=True, hide_index=True
+            )
 
 
 # ── 실험 전 안내 ─────────────────────────────────────────────────────────────

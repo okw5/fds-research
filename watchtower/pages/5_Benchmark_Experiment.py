@@ -53,10 +53,10 @@ st.sidebar.header("🔧 실험 설정")
 dataset_size = st.sidebar.slider(
     "데이터셋 크기",
     min_value=100,
-    max_value=5000,
+    max_value=10000,
     value=500,
     step=100,
-    help="테스트할 총 시나리오 수 (07-28 아카이브 로드 시 크게 상향 가능)"
+    help="테스트할 총 시나리오 수 (최대 10,000개)"
 )
 
 attack_ratio = st.sidebar.slider(
@@ -210,14 +210,23 @@ else:
         sys_e2.name = "FlashLoanRule + 1계층 모델"
         sys_e3 = FDSEngine3System()
         sys_e3.name = "HoustonLite + 1계층 모델"
+        # 사용자 요청에 따른 앙상블 모델 최적 파라미터 적용
+        ensemble_config = {
+            'engine_weights': {
+                'engine1_anomaly': 0.30,
+                'engine2_signature': 0.50,
+                'engine3_threshold': 0.20,
+            },
+            'override_threshold': 0.90
+        }
         
-        sys_mg = ManualGovernanceSystem()
+        sys_mg = ManualGovernanceSystem(config=ensemble_config)
         sys_mg.name = "앙상블모델 + 수동거버넌스"
         
-        sys_sl = FDSSingleLayerSystem()
+        sys_sl = FDSSingleLayerSystem(config=ensemble_config)
         sys_sl.name = "앙상블모델 + 1계층 모델"
         
-        sys_tl = FDSTwoLayerSystem()
+        sys_tl = FDSTwoLayerSystem(config=ensemble_config)
         sys_tl.name = "앙상블모델 + 2계층모델"
         
         systems = [sys_e1, sys_e2, sys_e3, sys_mg, sys_sl, sys_tl]
@@ -312,6 +321,7 @@ if st.session_state.benchmark_results:
             '오탐율 (FPR)': f"{fpr*100:.1f}%",
             'F1-Score': f"{summary['f1_score']:.3f}",
             '대응 시간 (avg)': f"{summary['latency']['avg_ms']:.0f} ms",
+            '재무 손실 ($)': f"${summary['financial_loss']['total_usd']:,.0f}",
             '자산 보존율': f"{summary['financial_loss']['prevention_rate']*100:.1f}%",
             'Micro 2차 피해 (자산 대비)': f"{_micro_pct:.4f}%" if _micro_pct > 0 else "—",
             '평균 Downtime': f"{summary['service_downtime']['avg_per_detection_min']:.1f} 분",

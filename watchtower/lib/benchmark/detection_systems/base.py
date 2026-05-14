@@ -324,8 +324,8 @@ class DetectionConfig:
         """
         return {
             # Macro 엔진 파라미터 (사전 서명 검증 포함)
-            'macro_base_latency_ms': 250,
-            'macro_latency_variance_ms': 100,
+            'macro_base_latency_ms': 120,
+            'macro_latency_variance_ms': 40,
             # Micro 엔진 파라미터 (경량, 독립)
             'micro_base_latency_ms': 60,
             'micro_latency_variance_ms': 20,

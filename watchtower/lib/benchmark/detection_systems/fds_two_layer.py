@@ -307,6 +307,9 @@ class FDSTwoLayerSystem(DetectionSystem):
         noise = float(np.random.normal(0.0, 0.03))
         final_score = float(np.clip(final_score + noise, 0.0, 1.0))
 
+        if max(anomaly_score, pattern_score, threshold_score) >= self._override_threshold:
+            return 'ATTACK'
+
         return 'ATTACK' if final_score > self._macro_decision_threshold else 'NORMAL'
 
     def _detect_micro_layer(self, scenario: Scenario,
